@@ -4,7 +4,8 @@ import androidx.lifecycle.viewModelScope
 import com.apkupdater.data.ui.AppUpdate
 import com.apkupdater.data.ui.SearchUiState
 import com.apkupdater.data.ui.removeId
-import com.apkupdater.data.ui.setIsInstalling
+import com.apkupdater.data.ui.InstallStage
+import com.apkupdater.data.ui.setInstallStage
 import com.apkupdater.data.ui.setProgress
 import com.apkupdater.prefs.Prefs
 import com.apkupdater.repository.SearchRepository
@@ -67,7 +68,7 @@ class SearchViewModel(
     }
 
     override fun cancelInstall(id: Int) = viewModelScope.launchWithMutex(mutex, Dispatchers.IO) {
-        state.value = SearchUiState.Success(state.value.mutableUpdates().setIsInstalling(id, false))
+        state.value = SearchUiState.Success(state.value.mutableUpdates().setInstallStage(id, InstallStage.Idle))
         installer.finish()
     }
 
@@ -79,13 +80,13 @@ class SearchViewModel(
     }
 
     override fun downloadAndRootInstall(update: AppUpdate) = viewModelScope.launch(Dispatchers.IO) {
-        state.value = SearchUiState.Success(state.value.mutableUpdates().setIsInstalling(update.id, true))
-        downloadAndRootInstall(update.id, update.link)
+        state.value = SearchUiState.Success(state.value.mutableUpdates().setInstallStage(update.id, InstallStage.Pending))
+        downloadAndRootInstall(update.id, update.packageName, update.link)
     }
 
     override fun downloadAndInstall(update: AppUpdate) = viewModelScope.launch(Dispatchers.IO) {
         if(installer.checkPermission()) {
-            state.value = SearchUiState.Success(state.value.mutableUpdates().setIsInstalling(update.id, true))
+            state.value = SearchUiState.Success(state.value.mutableUpdates().setInstallStage(update.id, InstallStage.Pending))
             downloadAndInstall(update.id, update.packageName, update.link)
         }
     }

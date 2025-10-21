@@ -4,7 +4,8 @@ import androidx.lifecycle.viewModelScope
 import com.apkupdater.data.ui.AppUpdate
 import com.apkupdater.data.ui.UpdatesUiState
 import com.apkupdater.data.ui.removeId
-import com.apkupdater.data.ui.setIsInstalling
+import com.apkupdater.data.ui.InstallStage
+import com.apkupdater.data.ui.setInstallStage
 import com.apkupdater.data.ui.setProgress
 import com.apkupdater.prefs.Prefs
 import com.apkupdater.repository.UpdatesRepository
@@ -36,12 +37,12 @@ class UpdatesViewModel(
 	private val mutex = Mutex()
 	private val state = MutableStateFlow<UpdatesUiState>(UpdatesUiState.Loading)
 
-	init {
-		subscribeToInstallStatus(state.value.updates())
-		subscribeToInstallProgress { progress ->
-			state.value = UpdatesUiState.Success(state.value.mutableUpdates().setProgress(progress))
-		}
-	}
+        init {
+                subscribeToInstallStatus(state.value.updates())
+                subscribeToInstallProgress { progress ->
+                        state.value = UpdatesUiState.Success(state.value.mutableUpdates().setProgress(progress))
+                }
+        }
 
 	fun state(): StateFlow<UpdatesUiState> = state
 
@@ -60,27 +61,27 @@ class UpdatesViewModel(
 		setSuccess(state.value.mutableUpdates())
 	}
 
-	override fun cancelInstall(id: Int) = viewModelScope.launchWithMutex(mutex, Dispatchers.IO) {
-		state.value = UpdatesUiState.Success(state.value.mutableUpdates().setIsInstalling(id, false))
-		installer.finish()
-	}
+        override fun cancelInstall(id: Int) = viewModelScope.launchWithMutex(mutex, Dispatchers.IO) {
+                state.value = UpdatesUiState.Success(state.value.mutableUpdates().setInstallStage(id, InstallStage.Idle))
+                installer.finish()
+        }
 
-	override fun finishInstall(id: Int) = viewModelScope.launchWithMutex(mutex, Dispatchers.IO) {
-		setSuccess(state.value.mutableUpdates().removeId(id))
-		installer.finish()
-	}
+        override fun finishInstall(id: Int) = viewModelScope.launchWithMutex(mutex, Dispatchers.IO) {
+                setSuccess(state.value.mutableUpdates().removeId(id))
+                installer.finish()
+        }
 
-	override fun downloadAndRootInstall(update: AppUpdate) = viewModelScope.launch(Dispatchers.IO) {
-		state.value = UpdatesUiState.Success(state.value.mutableUpdates().setIsInstalling(update.id, true))
-		downloadAndRootInstall(update.id, update.link)
-	}
+        override fun downloadAndRootInstall(update: AppUpdate) = viewModelScope.launch(Dispatchers.IO) {
+                state.value = UpdatesUiState.Success(state.value.mutableUpdates().setInstallStage(update.id, InstallStage.Pending))
+                downloadAndRootInstall(update.id, update.packageName, update.link)
+        }
 
-	override fun downloadAndInstall(update: AppUpdate) = viewModelScope.launch(Dispatchers.IO) {
-		if(installer.checkPermission()) {
-			state.value = UpdatesUiState.Success(state.value.mutableUpdates().setIsInstalling(update.id, true))
-			downloadAndInstall(update.id, update.packageName, update.link)
-		}
-	}
+        override fun downloadAndInstall(update: AppUpdate) = viewModelScope.launch(Dispatchers.IO) {
+                if(installer.checkPermission()) {
+                        state.value = UpdatesUiState.Success(state.value.mutableUpdates().setInstallStage(update.id, InstallStage.Pending))
+                        downloadAndInstall(update.id, update.packageName, update.link)
+                }
+        }
 
 	private fun List<AppUpdate>.filterIgnoredVersions(ignoredVersions: List<Int>) = this
 		.filter { !ignoredVersions.contains(it.id) }

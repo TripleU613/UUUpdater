@@ -2,6 +2,7 @@ package com.apkupdater.util
 
 import com.apkupdater.data.ui.AppInstallProgress
 import com.apkupdater.data.ui.AppInstallStatus
+import com.apkupdater.data.ui.InstallStage
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 
@@ -16,7 +17,15 @@ class InstallLog {
     fun progress() = progress.asSharedFlow()
 
     fun cancelCurrentInstall() = status.tryEmit(AppInstallStatus(false, currentInstallLog, false))
-    fun emitStatus(newStatus: AppInstallStatus) = status.tryEmit(newStatus)
-    fun emitProgress(newProgress: AppInstallProgress) = progress.tryEmit(newProgress)
+    fun emitStatus(newStatus: AppInstallStatus) = run {
+        currentInstallLog = newStatus.id
+        status.tryEmit(newStatus)
+    }
+    fun emitProgress(newProgress: AppInstallProgress) = run {
+        currentInstallLog = newProgress.id
+        progress.tryEmit(newProgress)
+    }
+
+    fun emitStage(id: Int, stage: InstallStage) = emitProgress(AppInstallProgress(id, stage = stage))
 
 }

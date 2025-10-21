@@ -21,6 +21,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.apkupdater.R
+import com.apkupdater.data.ui.InstallStage
 import com.apkupdater.data.ui.Source
 import com.apkupdater.util.clickableNoRipple
 
@@ -96,10 +97,10 @@ fun InstallIcon(onClick: () -> Unit, modifier: Modifier = Modifier) = Icon(
 
 @Composable
 fun BoxScope.InstallProgressIcon(
-    isInstalling: Boolean,
+    stage: InstallStage,
     onClick: () -> Unit
 ) {
-    if(isInstalling) {
+    if(stage != InstallStage.Idle) {
         CircularProgressIndicator(
             Modifier.align(Alignment.TopEnd).size(30.dp).padding(4.dp),
             color = MaterialTheme.colorScheme.primary

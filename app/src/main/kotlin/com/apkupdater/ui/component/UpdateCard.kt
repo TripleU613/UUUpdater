@@ -42,6 +42,7 @@ import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import com.apkupdater.R
 import com.apkupdater.data.ui.AppUpdate
+import com.apkupdater.data.ui.InstallStage
 import com.apkupdater.data.ui.Link
 import com.apkupdater.util.getAppName
 import com.apkupdater.util.getAppIcon
@@ -78,19 +79,27 @@ fun UpdateCard(
                 )
 
                 // Progress ring around icon for downloading/installing
-                if (appUpdate.isInstalling) {
-                    if (appUpdate.total > 0) {
-                        // Determinate progress ring
-                        val progress = (appUpdate.progress.toFloat() / appUpdate.total.toFloat()).coerceIn(0f, 1f)
-                        CircularProgressIndicator(
-                            progress = { progress },
-                            modifier = Modifier.size(56.dp),
-                            strokeWidth = 3.dp,
-                            color = MaterialTheme.colorScheme.primary,
-                            trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                        )
-                    } else {
-                        // Indeterminate circular progress ring
+                when (appUpdate.installStage) {
+                    InstallStage.Downloading -> {
+                        if (appUpdate.total > 0) {
+                            val progress = (appUpdate.progress.toFloat() / appUpdate.total.toFloat()).coerceIn(0f, 1f)
+                            CircularProgressIndicator(
+                                progress = { progress },
+                                modifier = Modifier.size(56.dp),
+                                strokeWidth = 3.dp,
+                                color = MaterialTheme.colorScheme.primary,
+                                trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                            )
+                        } else {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(56.dp),
+                                strokeWidth = 3.dp,
+                                color = MaterialTheme.colorScheme.primary,
+                                trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                            )
+                        }
+                    }
+                    InstallStage.Pending, InstallStage.Installing -> {
                         CircularProgressIndicator(
                             modifier = Modifier.size(56.dp),
                             strokeWidth = 3.dp,
@@ -98,6 +107,7 @@ fun UpdateCard(
                             trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
                         )
                     }
+                    InstallStage.Idle -> Unit
                 }
             }
 
@@ -217,7 +227,7 @@ fun UpdateCard(
         }
 
         // Linear progress bar for download progress
-        if (appUpdate.isInstalling && appUpdate.total > 0) {
+        if (appUpdate.installStage == InstallStage.Downloading && appUpdate.total > 0) {
             val progress = (appUpdate.progress.toFloat() / appUpdate.total.toFloat()).coerceIn(0f, 1f)
             LinearProgressIndicator(
                 progress = { progress },
@@ -245,18 +255,70 @@ private fun UpdateActionButton(
     appUpdate: AppUpdate,
     onClick: () -> Unit
 ) {
-    if (appUpdate.isInstalling && appUpdate.total > 0) {
-        // Downloading - show button with fill progress
-        val progress = (appUpdate.progress.toFloat() / appUpdate.total.toFloat()).coerceIn(0f, 1f)
-        val percentage = (progress * 100).toInt()
+    when (appUpdate.installStage) {
+        InstallStage.Downloading -> {
+            val progress = if (appUpdate.total > 0) {
+                (appUpdate.progress.toFloat() / appUpdate.total.toFloat()).coerceIn(0f, 1f)
+            } else {
+                0f
+            }
+            val percentage = (progress * 100).toInt().coerceIn(0, 100)
+            val percentageText = "$percentage%"
 
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(20.dp))
-        ) {
-            // Background button
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+            ) {
+                Button(
+                    onClick = { /* No action during download */ },
+                    enabled = false,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    shape = RoundedCornerShape(20.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        text = percentageText,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.Transparent
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .clip(RoundedCornerShape(20.dp))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(progress)
+                            .height(40.dp)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                    )
+                }
+
+                Box(
+                    modifier = Modifier.matchParentSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = percentageText,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
+            }
+        }
+        InstallStage.Installing -> {
             Button(
-                onClick = { /* No action during download */ },
+                onClick = { /* No action during install */ },
                 enabled = false,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -268,80 +330,51 @@ private fun UpdateActionButton(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 Text(
-                    text = "${stringResource(R.string.downloading)} $percentage%",
+                    text = stringResource(R.string.installing),
                     style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.Transparent // Hide the text, we'll overlay it
+                    fontWeight = FontWeight.Medium
                 )
             }
-
-            // Progress fill overlay
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .clip(RoundedCornerShape(20.dp))
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(progress)
-                        .height(40.dp)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
-                )
-            }
-
-            // Text overlay
-            Box(
-                modifier = Modifier.matchParentSize(),
-                contentAlignment = Alignment.Center
+        }
+        InstallStage.Pending -> {
+            Button(
+                onClick = { /* No action during pending */ },
+                enabled = false,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                shape = RoundedCornerShape(20.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 Text(
-                    text = "${stringResource(R.string.downloading)} $percentage%",
+                    text = stringResource(R.string.pending),
                     style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    fontWeight = FontWeight.Medium
                 )
             }
         }
-    } else if (appUpdate.isInstalling) {
-        // Installing - indeterminate state
-        Button(
-            onClick = { /* No action during install */ },
-            enabled = false,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-            ),
-            shape = RoundedCornerShape(20.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-        ) {
-            Text(
-                text = stringResource(R.string.installing),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Medium
-            )
-        }
-    } else {
-        // Ready to update
-        Button(
-            onClick = {
-                android.util.Log.d("UpdateCard", "Update button clicked!")
-                onClick()
-            },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = Color.White
-            ),
-            shape = RoundedCornerShape(20.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-        ) {
-            Text(
-                text = stringResource(R.string.update),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Medium
-            )
+        InstallStage.Idle -> {
+            Button(
+                onClick = {
+                    android.util.Log.d("UpdateCard", "Update button clicked!")
+                    onClick()
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = Color.White
+                ),
+                shape = RoundedCornerShape(20.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.update),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Medium
+                )
+            }
         }
     }
 }
