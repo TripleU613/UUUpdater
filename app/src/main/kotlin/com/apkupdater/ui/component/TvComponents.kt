@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,6 +29,7 @@ import com.apkupdater.data.ui.ApkMirrorSource
 import com.apkupdater.data.ui.ApkPureSource
 import com.apkupdater.data.ui.AppInstalled
 import com.apkupdater.data.ui.AppUpdate
+import com.apkupdater.data.ui.InstallStage
 import com.apkupdater.data.ui.Source
 import com.apkupdater.util.getAppName
 import com.apkupdater.util.to2f
@@ -79,15 +79,24 @@ fun TvInstallButton(
     modifier = Modifier.padding(top = 0.dp, bottom = 8.dp, start = 8.dp, end = 8.dp).width(120.dp),
     onClick = { onInstall(app.packageName) }
 ) {
-    if (app.isInstalling) {
-        if (app.total != 0L && app.progress != 0L) {
-            val p = (app.progress.toFloat() / app.total) * 100f
-            Text("${p.to2f()}%")
-        } else {
-            CircularProgressIndicator(Modifier.size(24.dp))
+    when (app.installStage) {
+        InstallStage.Downloading -> {
+            if (app.total != 0L && app.progress != 0L) {
+                val p = (app.progress.toFloat() / app.total).coerceIn(0f, 1f) * 100f
+                Text("${p.to2f()}%")
+            } else {
+                Text("0%")
+            }
         }
-    } else {
-        Text(stringResource(R.string.install_cd))
+        InstallStage.Pending -> {
+            Text(stringResource(R.string.pending))
+        }
+        InstallStage.Installing -> {
+            Text(stringResource(R.string.installing))
+        }
+        InstallStage.Idle -> {
+            Text(stringResource(R.string.install_cd))
+        }
     }
 }
 

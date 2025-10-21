@@ -74,20 +74,33 @@ class SessionInstaller(
         }
     }
 
-    fun rootInstall(file: File): Boolean = rootInstall(listOf(file))
+    data class RootInstallResult(
+        val success: Boolean,
+        val stdout: List<String>,
+        val stderr: List<String>,
+        val code: Int
+    )
 
-    fun rootInstall(files: List<File>): Boolean {
-        if (files.isEmpty()) return false
+    fun rootInstall(file: File): RootInstallResult = rootInstall(listOf(file))
+
+    fun rootInstall(files: List<File>): RootInstallResult {
+        if (files.isEmpty()) return RootInstallResult(false, emptyList(), emptyList(), -1)
         val command = if (files.size == 1) {
             "pm install -r ${files.single().quotedPath()}"
         } else {
             val paths = files.joinToString(" ") { it.quotedPath() }
             "pm install-multiple -r $paths"
         }
-        return try {
-            Shell.cmd(command).exec().isSuccess
+        val result = Shell.cmd(command).exec()
+        return RootInstallResult(result.isSuccess, result.out, result.err, result.code)
+    }
+
+    suspend fun installFromFiles(id: Int, packageName: String, files: List<File>) {
+        val streams = files.map { it.inputStream() }
+        try {
+            install(id, packageName, streams)
         } finally {
-            files.forEach { it.delete() }
+            streams.forEach { runCatching { it.close() } }
         }
     }
 

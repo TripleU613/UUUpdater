@@ -85,16 +85,17 @@ class MainViewModel(
 					installLog.emitStatus(AppInstallStatus(true, it))
 				}
 			}
-			else -> {
-				// We assume error and cancel the install
-				intent.getAppId()?.let {
-					installLog.emitStatus(AppInstallStatus(false, it))
-				}
-				val message = intent.extras?.getString(PackageInstaller.EXTRA_STATUS_MESSAGE)
-				Log.e("MainViewModel", "Failed to install app: $message $intent")
-			}
-		}
-	}
+                        else -> {
+                                // We assume error and cancel the install
+                                intent.getAppId()?.let {
+                                        val message = intent.extras?.getString(PackageInstaller.EXTRA_STATUS_MESSAGE)
+                                        installLog.emitStatus(AppInstallStatus(false, it, message = message))
+                                }
+                                val message = intent.extras?.getString(PackageInstaller.EXTRA_STATUS_MESSAGE)
+                                Log.e("MainViewModel", "Failed to install app: $message $intent")
+                        }
+                }
+        }
 
 	private fun processUpdateIntent(
 		navController: NavController,

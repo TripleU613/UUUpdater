@@ -21,9 +21,12 @@
     <string name="update">Update</string>
     <string name="downloading">Downloading</string>
     <string name="installing">Installing...</string>
+    <string name="pending">Pending</string>
     <string name="install_success">%1$s installed.</string>
     <string name="install_failure">%1$s failed to install.</string>
     <string name="root_install_not_supported">Root install of this app is not supported.</string>
+    <string name="root_install_failed_with_reason">Root install failed (%1$s). Falling back to package installer.</string>
+    <string name="root_install_fallback_failed">Root install failed (%1$s) and fallback failed (%2$s). Please install manually.</string>
 
     // Settings
     <string name="settings_portrait_columns">Portrait Columns</string>
