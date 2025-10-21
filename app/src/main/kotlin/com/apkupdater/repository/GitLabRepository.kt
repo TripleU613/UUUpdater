@@ -45,7 +45,7 @@ class GitLabRepository(
         repo: String,
         packageName: String,
         currentVersion: String,
-        extra: Regex?
+        @Suppress("UNUSED_PARAMETER") extra: Regex?
     ) = flow {
         val releases = service.getReleases(user, repo)
             .filter { Version(filterVersionTag(it.tag_name)) > Version(currentVersion) }
@@ -96,7 +96,7 @@ class GitLabRepository(
     }
 
     private fun getApkUrl(
-        packageName: String,
+        @Suppress("UNUSED_PARAMETER") packageName: String,
         release: GitLabRelease
     ): String {
         // TODO: Take into account arch

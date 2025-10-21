@@ -28,7 +28,7 @@ class MainViewModel(
 	private val installLog: InstallLog
 ) : ViewModel() {
 
-	val screens = listOf(Screen.Apps, Screen.Search, Screen.Updates, Screen.Settings)
+	val screens = listOf(Screen.Updates)
 
 	val isRefreshing = MutableStateFlow(false)
 

@@ -1,6 +1,9 @@
 package com.apkupdater.ui.screen
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -12,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -26,16 +30,20 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.rememberAsyncImagePainter
 import androidx.tv.foundation.lazy.grid.items
 import com.apkupdater.R
 import com.apkupdater.data.ui.SearchUiState
@@ -55,9 +63,17 @@ import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun SearchScreen(
-	viewModel: SearchViewModel = koinViewModel()
+	viewModel: SearchViewModel = koinViewModel(),
+	isRefreshing: Boolean = false
 ) = Column {
 	SearchTopBar(viewModel)
+	if (isRefreshing) {
+		LinearProgressIndicator(
+			modifier = Modifier.fillMaxWidth(),
+			color = MaterialTheme.colorScheme.primary,
+			trackColor = MaterialTheme.colorScheme.surfaceVariant
+		)
+	}
 	viewModel.state().collectAsStateWithLifecycle().value.onError {
 		DefaultErrorScreen()
 	}.onSuccess {
@@ -73,6 +89,7 @@ fun SearchScreenSuccess(
 	viewModel: SearchViewModel
 ) = Column {
 	val uriHandler = LocalUriHandler.current
+	@Suppress("DEPRECATION")
 	val prefs: Prefs = get()
 
 	if (prefs.androidTvUi.get()) {
@@ -102,7 +119,11 @@ fun SearchTopBar(viewModel: SearchViewModel) = TopAppBar(
 	actions = {},
 	navigationIcon = {
 		Box(Modifier.minimumInteractiveComponentSize().size(40.dp), Alignment.Center) {
-			Icon(Icons.Filled.Search, "Tab Icon")
+			Image(
+				painter = rememberAsyncImagePainter(R.mipmap.ic_launcher_round),
+				contentDescription = "App Icon",
+				modifier = Modifier.size(40.dp).clip(CircleShape).background(androidx.compose.ui.graphics.Color.White)
+			)
 		}
 	}
 )

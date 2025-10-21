@@ -32,12 +32,19 @@ abstract class InstallViewModel(
 ): ViewModel() {
 
     fun install(update: AppUpdate, uriHandler: UriHandler) {
+        Log.d("InstallViewModel", "install() called for: ${update.name}, source: ${update.source}, link: ${update.link}")
         when (update.source) {
-            ApkMirrorSource -> uriHandler.openUri((update.link as Link.Url).link)
+            ApkMirrorSource -> {
+                Log.d("InstallViewModel", "ApkMirror source - opening URI in browser")
+                uriHandler.openUri((update.link as Link.Url).link)
+            }
             else -> {
-                if (prefs.rootInstall.get()) {
+                // Only use root install for simple URL links, fall back to normal install for XAPK/Play
+                if (prefs.rootInstall.get() && update.link is Link.Url) {
+                    Log.d("InstallViewModel", "Starting root install")
                     downloadAndRootInstall(update)
                 } else {
+                    Log.d("InstallViewModel", "Starting normal install (link type: ${update.link::class.simpleName})")
                     downloadAndInstall(update)
                 }
             }
@@ -88,7 +95,8 @@ abstract class InstallViewModel(
                 installer.playInstall(id, packageName, files.map { downloader.downloadStream(it.url)!! })
             }
             is Link.Url -> {
-                installLog.emitProgress(AppInstallProgress(id, 0L, link.size))
+                val size = if (link.size > 0) link.size else downloader.getContentLength(link.link)
+                installLog.emitProgress(AppInstallProgress(id, 0L, size))
                 installer.install(id, packageName, downloader.downloadStream(link.link)!!)
             }
             is Link.Xapk -> installer.installXapk(id, packageName, downloader.downloadStream(link.link)!!)

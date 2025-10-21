@@ -323,32 +323,14 @@ fun Settings(viewModel: SettingsViewModel) = LazyColumn {
 			R.drawable.ic_frequency
 		)
 	}
-	item {
-		LargeTitle(stringResource(R.string.settings_utils), Modifier.padding(start = 16.dp, top = 16.dp))
-		ButtonSetting(
-			stringResource(R.string.copy_app_list),
-			{ viewModel.copyAppList() },
-			R.drawable.ic_root,
-			R.drawable.ic_copy
-		)
-		ButtonSetting(
-			stringResource(R.string.copy_app_logs),
-			{ viewModel.copyAppLogs() },
-			R.drawable.ic_root,
-			R.drawable.ic_copy
-		)
-	}
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsTopBar(viewModel: SettingsViewModel) = TopAppBar(
+fun SettingsTopBar(@Suppress("UNUSED_PARAMETER") viewModel: SettingsViewModel) = TopAppBar(
 	title = { Text(stringResource(R.string.tab_settings)) },
 	colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.statusBarColor()),
 	actions = {
-		IconButton(onClick = { viewModel.setAbout() }) {
-			Icon(painterResource(R.drawable.ic_info), stringResource(R.string.about))
-		}
 	},
 	navigationIcon = {
 		Box(Modifier.minimumInteractiveComponentSize().size(40.dp), Alignment.Center) {

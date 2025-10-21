@@ -77,8 +77,14 @@ class SettingsViewModel(
 	}
 
 	fun setRootInstall(b: Boolean) {
-		if (b && Shell.isAppGrantedRoot() == true) {
-			prefs.rootInstall.put(true)
+		if (b) {
+			// Request root access by trying to get a root shell
+			val hasRoot = try {
+				Shell.getShell().isRoot
+			} catch (e: Exception) {
+				false
+			}
+			prefs.rootInstall.put(hasRoot)
 		} else {
 			prefs.rootInstall.put(false)
 		}

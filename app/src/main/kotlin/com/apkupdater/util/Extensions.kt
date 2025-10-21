@@ -151,7 +151,8 @@ fun Spanned.toAnnotatedString(): AnnotatedString = buildAnnotatedString {
 }
 
 fun OkHttpClient.Builder.addUserAgentInterceptor(agent: String) = addNetworkInterceptor {
-	it.proceed(it.request().newBuilder().header("User-Agent", agent).build())
+	val sanitizedAgent = agent.replace("\r", "").replace("\n", "")
+	it.proceed(it.request().newBuilder().header("User-Agent", sanitizedAgent).build())
 }
 
 fun filterVersionTag(version: String) = version

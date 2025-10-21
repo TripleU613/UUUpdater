@@ -118,6 +118,7 @@ fun ScrollableText(
     val inner = remember { mutableStateOf(IntSize.Zero) }
     val outer = remember { mutableStateOf(IntSize.Zero) }
 
+    @Suppress("DEPRECATION")
     if (get<Prefs>().playTextAnimations.get()) {
         val effect: suspend (ScrollState) -> Unit = {
             state.scrollTo(0)

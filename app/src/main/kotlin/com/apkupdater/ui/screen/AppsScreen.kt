@@ -1,7 +1,11 @@
 package com.apkupdater.ui.screen
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
@@ -9,6 +13,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -16,10 +21,14 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.rememberAsyncImagePainter
 import androidx.tv.foundation.lazy.grid.items
 import com.apkupdater.R
 import com.apkupdater.data.ui.AppsUiState
@@ -41,20 +50,29 @@ import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun AppsScreen(
-	viewModel: AppsViewModel = koinViewModel()
+	viewModel: AppsViewModel = koinViewModel(),
+	isRefreshing: Boolean = false
 ) {
 	viewModel.state().collectAsStateWithLifecycle().value.onLoading {
-		AppsScreenLoading(viewModel, it)
+		AppsScreenLoading(viewModel, it, isRefreshing)
 	}.onError {
-		AppsScreenError()
+		AppsScreenError(isRefreshing)
 	}.onSuccess {
-		AppsScreenSuccess(viewModel, it)
+		AppsScreenSuccess(viewModel, it, isRefreshing)
 	}
 }
 
 @Composable
-fun AppsScreenSuccess(viewModel: AppsViewModel, state: AppsUiState.Success) = Column {
+fun AppsScreenSuccess(viewModel: AppsViewModel, state: AppsUiState.Success, isRefreshing: Boolean) = Column {
 	AppsTopBar(viewModel, state.excludeSystem, state.excludeAppStore, state.excludeDisabled)
+	if (isRefreshing) {
+		LinearProgressIndicator(
+			modifier = Modifier.fillMaxWidth(),
+			color = MaterialTheme.colorScheme.primary,
+			trackColor = MaterialTheme.colorScheme.surfaceVariant
+		)
+	}
+	@Suppress("DEPRECATION")
 	if (get<Prefs>().androidTvUi.get()) {
 		TvInstalledGrid {
 			items(state.apps) {
@@ -71,38 +89,49 @@ fun AppsScreenSuccess(viewModel: AppsViewModel, state: AppsUiState.Success) = Co
 }
 
 @Composable
-fun AppsScreenLoading(viewModel: AppsViewModel, state: AppsUiState.Loading) = Column {
+fun AppsScreenLoading(viewModel: AppsViewModel, state: AppsUiState.Loading, isRefreshing: Boolean) = Column {
 	AppsTopBar(viewModel, state.excludeSystem, state.excludeAppStore, state.excludeDisabled)
+	if (isRefreshing) {
+		LinearProgressIndicator(
+			modifier = Modifier.fillMaxWidth(),
+			color = MaterialTheme.colorScheme.primary,
+			trackColor = MaterialTheme.colorScheme.surfaceVariant
+		)
+	}
 	LoadingGrid()
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppsTopBar(
-	viewModel: AppsViewModel,
-	excludeSystem: Boolean,
-	excludeAppStore: Boolean,
-	excludeDisabled: Boolean
+	@Suppress("UNUSED_PARAMETER") viewModel: AppsViewModel,
+	@Suppress("UNUSED_PARAMETER") excludeSystem: Boolean,
+	@Suppress("UNUSED_PARAMETER") excludeAppStore: Boolean,
+	@Suppress("UNUSED_PARAMETER") excludeDisabled: Boolean
 ) = TopAppBar(
-	title = { Text(stringResource(R.string.tab_apps)) },
+	title = { Text(stringResource(R.string.app_name)) },
 	colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.statusBarColor()),
 	actions = {
-		IconButton(onClick = { viewModel.onSystemClick() }) {
-			ExcludeSystemIcon(excludeSystem)
-		}
-		IconButton(onClick = { viewModel.onAppStoreClick() }) {
-			ExcludeAppStoreIcon(excludeAppStore)
-		}
-		IconButton(onClick = { viewModel.onDisabledClick() }) {
-			ExcludeDisabledIcon(excludeDisabled)
-		}
 	},
 	navigationIcon = {
 		Box(Modifier.minimumInteractiveComponentSize().size(40.dp), Alignment.Center) {
-			Icon(Icons.Filled.Home, "Tab Icon")
+			Image(
+				painter = rememberAsyncImagePainter(R.mipmap.ic_launcher_round),
+				contentDescription = "App Icon",
+				modifier = Modifier.size(40.dp).clip(CircleShape).background(androidx.compose.ui.graphics.Color.White)
+			)
 		}
 	}
 )
 
 @Composable
-fun AppsScreenError() = DefaultErrorScreen()
+fun AppsScreenError(isRefreshing: Boolean) = Column {
+	if (isRefreshing) {
+		LinearProgressIndicator(
+			modifier = Modifier.fillMaxWidth(),
+			color = MaterialTheme.colorScheme.primary,
+			trackColor = MaterialTheme.colorScheme.surfaceVariant
+		)
+	}
+	DefaultErrorScreen()
+}

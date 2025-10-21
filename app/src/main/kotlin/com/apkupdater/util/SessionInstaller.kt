@@ -8,6 +8,7 @@ import android.content.pm.PackageInstaller
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES
+import android.util.Log
 import androidx.core.content.ContextCompat.startActivity
 import com.apkupdater.BuildConfig
 import com.apkupdater.data.ui.AppInstallProgress
@@ -128,8 +129,11 @@ fun InputStream.copyToAndNotify(out: OutputStream, id: Int, installLog: InstallL
     while (bytes >= 0) {
         out.write(buffer, 0, bytes)
         bytesCopied += bytes
-        installLog.emitProgress(AppInstallProgress(id, progress = total + bytesCopied))
+        val currentProgress = total + bytesCopied
+        Log.d("SessionInstaller", "Emitting progress: id=$id, progress=$currentProgress, bytesCopied=$bytesCopied, total=$total")
+        installLog.emitProgress(AppInstallProgress(id, progress = currentProgress))
         bytes = read(buffer)
     }
+    Log.d("SessionInstaller", "Finished copying: id=$id, totalBytesCopied=$bytesCopied")
     return bytesCopied
 }

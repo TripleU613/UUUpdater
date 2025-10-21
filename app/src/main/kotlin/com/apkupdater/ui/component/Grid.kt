@@ -5,7 +5,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridScope
@@ -23,10 +25,26 @@ import org.koin.androidx.compose.get
 
 @Composable
 fun LoadingGrid() {
+    @Suppress("DEPRECATION")
     if (get<Prefs>().androidTvUi.get()) {
         TvShimmeringGrid()
     } else {
-        ShimmeringGrid()
+        ShimmeringList()
+    }
+}
+
+@Composable
+fun ShimmeringList() = LazyColumn(
+    modifier = Modifier.fillMaxSize()
+) {
+    items(8) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(80.dp)
+                .padding(vertical = 4.dp)
+                .shimmering(true)
+        )
     }
 }
 
@@ -81,6 +99,7 @@ fun TvInstalledGrid(scroll: Boolean = true, content: TvLazyGridScope.() -> Unit)
 
 @Composable
 fun getNumColumns(orientation: Int): Int {
+    @Suppress("DEPRECATION")
     val prefs = get<Prefs>()
     return if(orientation == Configuration.ORIENTATION_PORTRAIT)
         prefs.portraitColumns.get()

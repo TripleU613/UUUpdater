@@ -20,6 +20,7 @@ android {
         versionName = if (buildNumber.isEmpty()) "3.0.3" else "0.0.$buildNumber"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
+        multiDexEnabled = true
     }
 
     signingConfigs {
@@ -47,7 +48,12 @@ android {
         getByName("release") {
             signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+        getByName("debug") {
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 
@@ -87,6 +93,7 @@ dependencies {
     implementation("androidx.compose.material3:material3:1.2.1")
     implementation("androidx.compose.ui:ui:1.6.4")
     implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.multidex:multidex:2.0.1")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
     implementation("androidx.navigation:navigation-compose:2.7.7")

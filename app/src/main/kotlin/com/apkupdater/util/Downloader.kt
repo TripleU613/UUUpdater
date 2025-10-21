@@ -45,6 +45,21 @@ class Downloader(
         null
     }
 
+    fun getContentLength(url: String): Long = runCatching {
+        val c = when {
+            url.contains("apkpure") -> apkPureClient
+            url.contains("aurora") -> auroraClient
+            else -> client
+        }
+        val request = Request.Builder().url(url).head().build()
+        c.newCall(request).execute().use { response ->
+            response.header("Content-Length")?.toLongOrNull() ?: 0L
+        }
+    }.getOrElse {
+        Log.e("Downloader", "Error getting content length", it)
+        0L
+    }
+
     private fun downloadRequest(url: String) = Request.Builder().url(url).build()
 
 }
