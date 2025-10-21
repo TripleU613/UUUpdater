@@ -25,8 +25,13 @@
     <string name="install_success">%1$s installed.</string>
     <string name="install_failure">%1$s failed to install.</string>
     <string name="root_install_not_supported">Root install of this app is not supported.</string>
-    <string name="root_install_failed_with_reason">Root install failed (%1$s). Falling back to package installer.</string>
-    <string name="root_install_fallback_failed">Root install failed (%1$s) and fallback failed (%2$s). Please install manually.</string>
+    <string name="root_install_failed_with_reason">Root install failed (%1$s).</string>
+    <string name="priv_app_install_failed_with_reason">Priv-app sync failed (%1$s).</string>
+    <string name="root_install_prompt_title">Install Mode</string>
+    <string name="root_install_prompt_message">Root access is unavailable. Change install mode for %1$s?</string>
+    <string name="root_install_prompt_yes">Yes</string>
+    <string name="root_install_prompt_no">No</string>
+    <string name="root_install_prompt_never">Never ask again</string>
 
     // Settings
     <string name="settings_portrait_columns">Portrait Columns</string>
@@ -47,6 +52,11 @@
     <string name="ignore_preRelease">Ignore Pre-release</string>
     <string name="use_safe_stores">Use Safe Stores (Aptoide)</string>
     <string name="root_install">Root Install</string>
+    <string name="package_installer_install">Package Installer</string>
+    <string name="priv_app_install">Priv-app Install</string>
+    <string name="install_mode_prompt">Install Mode Prompt</string>
+    <string name="all_up_to_date_title">You&apos;re up to date</string>
+    <string name="all_up_to_date_subtitle">You have the latest versions installed.</string>
     <string name="source_apkmirror" translatable="false">ApkMirror</string>
     <string name="source_fdroid" translatable="false">F-Droid Main</string>
     <string name="source_izzy" translatable="false">F-Droid Izzy</string>
@@ -79,3 +89,4 @@
     </plurals>
 
 </resources>
+

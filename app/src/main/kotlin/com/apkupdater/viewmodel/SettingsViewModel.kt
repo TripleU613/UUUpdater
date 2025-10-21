@@ -67,6 +67,9 @@ class SettingsViewModel(
 	fun setAndroidTvUi(b: Boolean) = prefs.androidTvUi.put(b)
 	fun getEnableAlarm() = prefs.enableAlarm.get()
 	fun getRootInstall() = prefs.rootInstall.get()
+	fun getPackageInstallerInstall() = prefs.packageInstallerInstall.get()
+	fun getPrivAppInstall() = prefs.privAppInstall.get()
+	fun getInstallModePromptSuppressed() = prefs.suppressInstallModePrompt.get()
 	fun getAlarmHour() = prefs.alarmHour.get()
 	fun getAlarmFrequency() = prefs.alarmFrequency.get()
 	fun getTheme() = prefs.theme.get()
@@ -88,6 +91,18 @@ class SettingsViewModel(
 		} else {
 			prefs.rootInstall.put(false)
 		}
+	}
+
+	fun setPackageInstallerInstall(b: Boolean) {
+		prefs.packageInstallerInstall.put(b)
+	}
+
+	fun setPrivAppInstall(b: Boolean) {
+		prefs.privAppInstall.put(b)
+	}
+
+	fun setInstallModePromptSuppressed(b: Boolean) {
+		prefs.suppressInstallModePrompt.put(b)
 	}
 
 	fun setAlarmFrequency(frequency: Int) {

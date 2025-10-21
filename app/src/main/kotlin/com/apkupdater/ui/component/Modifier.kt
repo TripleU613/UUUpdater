@@ -1,5 +1,6 @@
 package com.apkupdater.ui.component
 
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -14,28 +15,31 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.IntSize
-import com.apkupdater.ui.theme.statusBarColor
 
 
-fun Modifier.shimmering(enabled: Boolean): Modifier = composed {
+fun Modifier.shimmering(
+    enabled: Boolean,
+    baseColor: Color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+    highlightColor: Color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
+): Modifier = composed {
     if (enabled) {
         var size by remember { mutableStateOf(IntSize.Zero) }
-        val transition = rememberInfiniteTransition("shimmering")
-        val color = MaterialTheme.colorScheme.statusBarColor()
+        val transition = rememberInfiniteTransition(label = "shimmering")
         val startOffsetX by transition.animateFloat(
-            label = "shimmering",
+            label = "shimmering_offset",
             initialValue = -2 * size.width.toFloat(),
             targetValue = 2 * size.width.toFloat(),
-            animationSpec = infiniteRepeatable(animation = tween(1000))
+            animationSpec = infiniteRepeatable(animation = tween(durationMillis = 1200, easing = FastOutSlowInEasing))
         )
         background(
             brush = Brush.linearGradient(
                 colors = listOf(
-                    color.copy(alpha = 0.9f),
-                    color.copy(alpha = 0.3f),
-                    color.copy(alpha = 0.9f)
+                    baseColor.copy(alpha = 0.7f),
+                    highlightColor.copy(alpha = 0.9f),
+                    baseColor.copy(alpha = 0.7f)
                 ),
                 start = Offset(startOffsetX, 0f),
                 end = Offset(startOffsetX + size.width.toFloat(), size.height.toFloat())

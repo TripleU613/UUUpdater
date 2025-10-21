@@ -259,6 +259,24 @@ fun Settings(viewModel: SettingsViewModel) = LazyColumn {
 			R.drawable.ic_root
 		)
 		SwitchSetting(
+			{ viewModel.getPackageInstallerInstall() },
+			{ viewModel.setPackageInstallerInstall(it) },
+			stringResource(R.string.package_installer_install),
+			R.drawable.ic_install
+		)
+		SwitchSetting(
+			{ viewModel.getPrivAppInstall() },
+			{ viewModel.setPrivAppInstall(it) },
+			stringResource(R.string.priv_app_install),
+			R.drawable.ic_system
+		)
+		SwitchSetting(
+			{ !viewModel.getInstallModePromptSuppressed() },
+			{ viewModel.setInstallModePromptSuppressed(!it) },
+			stringResource(R.string.install_mode_prompt),
+			R.drawable.ic_info
+		)
+		SwitchSetting(
 			{ viewModel.getIgnoreAlpha() },
 			{ viewModel.setIgnoreAlpha(it) },
 			stringResource(R.string.ignore_alpha),

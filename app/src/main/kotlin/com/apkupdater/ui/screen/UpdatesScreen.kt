@@ -1,30 +1,41 @@
 package com.apkupdater.ui.screen
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.background
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DividerDefaults
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -32,56 +43,263 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.rememberAsyncImagePainter
 import androidx.navigation.NavController
 import androidx.tv.foundation.lazy.grid.items
+import coil.compose.rememberAsyncImagePainter
 import com.apkupdater.R
 import com.apkupdater.data.ui.AppUpdate
-import com.apkupdater.data.ui.Screen
 import com.apkupdater.prefs.Prefs
 import com.apkupdater.ui.component.DefaultErrorScreen
-import com.apkupdater.ui.component.EmptyGrid
-import com.apkupdater.ui.component.InstalledGrid
 import com.apkupdater.ui.component.LoadingGrid
-import com.apkupdater.ui.component.RefreshIcon
+import com.apkupdater.ui.component.SwitchSetting
 import com.apkupdater.ui.component.TvInstalledGrid
 import com.apkupdater.ui.component.TvUpdateItem
 import com.apkupdater.ui.component.UpdateCard
-import com.apkupdater.ui.component.UpdateItem
 import com.apkupdater.ui.theme.statusBarColor
+import com.apkupdater.util.InstallLog
+import com.apkupdater.util.InstallModePrompt
+import com.apkupdater.viewmodel.SettingsViewModel
 import com.apkupdater.viewmodel.UpdatesViewModel
+import kotlinx.coroutines.launch
 import org.koin.androidx.compose.get
 
 
 @Composable
-fun UpdatesScreen(viewModel: UpdatesViewModel, navController: NavController, isRefreshing: Boolean = false) {
+fun UpdatesScreen(
+	viewModel: UpdatesViewModel,
+	navController: NavController,
+	settingsViewModel: SettingsViewModel,
+	isRefreshing: Boolean = false
+) {
 	var searchQuery by remember { mutableStateOf("") }
+	val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+	val scope = rememberCoroutineScope()
+	@Suppress("DEPRECATION")
+	val installLog: InstallLog = get()
+	var installModePrompt by remember { mutableStateOf<InstallModePrompt?>(null) }
+	installLog.installModePrompts().CollectAsEffect {
+		installModePrompt = it
+	}
+	val state = viewModel.state().collectAsStateWithLifecycle().value
 
-	viewModel.state().collectAsStateWithLifecycle().value.onLoading {
-		UpdatesScreenLoading(viewModel, navController, isRefreshing, searchQuery) { searchQuery = it }
-	}.onError {
-		UpdatesScreenError(isRefreshing)
-	}.onSuccess {
-		UpdatesScreenSuccess(viewModel, navController, it.updates, isRefreshing, searchQuery) { searchQuery = it }
+	ModalNavigationDrawer(
+		drawerState = drawerState,
+		drawerContent = {
+			UpdatesDrawerContent(settingsViewModel)
+		}
+	) {
+		val openDrawer: () -> Unit = {
+			scope.launch { drawerState.open() }
+		}
+
+		installModePrompt?.let { prompt ->
+			AlertDialog(
+				onDismissRequest = { installModePrompt = null },
+				title = { Text(stringResource(R.string.root_install_prompt_title)) },
+				text = { Text(stringResource(R.string.root_install_prompt_message, prompt.packageName)) },
+				confirmButton = {
+					TextButton(onClick = {
+						installModePrompt = null
+						openDrawer()
+					}) {
+						Text(stringResource(R.string.root_install_prompt_yes))
+					}
+				},
+				dismissButton = {
+					Row {
+						TextButton(onClick = { installModePrompt = null }) {
+							Text(stringResource(R.string.root_install_prompt_no))
+						}
+						TextButton(onClick = {
+							settingsViewModel.setInstallModePromptSuppressed(true)
+							installModePrompt = null
+						}) {
+							Text(stringResource(R.string.root_install_prompt_never))
+						}
+					}
+				}
+			)
+		}
+
+		state.onLoading {
+			UpdatesScreenLoading(
+				viewModel = viewModel,
+				navController = navController,
+				isRefreshing = isRefreshing,
+				searchQuery = searchQuery,
+				onSearchQueryChange = { searchQuery = it },
+				onOpenDrawer = openDrawer
+			)
+		}.onError {
+			UpdatesScreenError(
+				isRefreshing = isRefreshing,
+				searchQuery = searchQuery,
+				onSearchQueryChange = { searchQuery = it },
+				onOpenDrawer = openDrawer
+			)
+		}.onSuccess {
+			UpdatesScreenSuccess(
+				viewModel = viewModel,
+				navController = navController,
+				updates = it.updates,
+				isRefreshing = isRefreshing,
+				searchQuery = searchQuery,
+				onSearchQueryChange = { searchQuery = it },
+				onOpenDrawer = openDrawer
+			)
+		}
+	}
+}
+
+@Composable
+private fun UpdatesDrawerContent(settingsViewModel: SettingsViewModel) {
+	ModalDrawerSheet {
+		Column(
+			modifier = Modifier
+				.fillMaxWidth()
+				.verticalScroll(rememberScrollState())
+				.padding(top = 24.dp, bottom = 24.dp)
+		) {
+			Text(
+				text = stringResource(R.string.settings_sources),
+				style = MaterialTheme.typography.titleMedium,
+				modifier = Modifier.padding(horizontal = 16.dp)
+			)
+			Spacer(modifier = Modifier.height(8.dp))
+			SwitchSetting(
+				getValue = { settingsViewModel.getUseGitHub() },
+				setValue = { settingsViewModel.setUseGitHub(it) },
+				text = stringResource(R.string.source_github),
+				icon = R.drawable.ic_github
+			)
+			SwitchSetting(
+				getValue = { settingsViewModel.getUseGitLab() },
+				setValue = { settingsViewModel.setUseGitLab(it) },
+				text = stringResource(R.string.source_gitlab),
+				icon = R.drawable.ic_gitlab
+			)
+			SwitchSetting(
+				getValue = { settingsViewModel.getUseApkMirror() },
+				setValue = { settingsViewModel.setUseApkMirror(it) },
+				text = stringResource(R.string.source_apkmirror),
+				icon = R.drawable.ic_apkmirror
+			)
+			SwitchSetting(
+				getValue = { settingsViewModel.getUseFdroid() },
+				setValue = { settingsViewModel.setUseFdroid(it) },
+				text = stringResource(R.string.source_fdroid),
+				icon = R.drawable.ic_fdroid
+			)
+			SwitchSetting(
+				getValue = { settingsViewModel.getUseIzzy() },
+				setValue = { settingsViewModel.setUseIzzy(it) },
+				text = stringResource(R.string.source_izzy),
+				icon = R.drawable.ic_izzy
+			)
+			SwitchSetting(
+				getValue = { settingsViewModel.getUseAptoide() },
+				setValue = { settingsViewModel.setUseAptoide(it) },
+				text = stringResource(R.string.source_aptoide),
+				icon = R.drawable.ic_aptoide
+			)
+			SwitchSetting(
+				getValue = { settingsViewModel.getUseApkPure() },
+				setValue = { settingsViewModel.setUseApkPure(it) },
+				text = stringResource(R.string.source_apkpure),
+				icon = R.drawable.ic_apkpure
+			)
+			SwitchSetting(
+				getValue = { settingsViewModel.getUsePlay() },
+				setValue = { settingsViewModel.setUsePlay(it) },
+				text = stringResource(R.string.source_play) + " (Alpha)",
+				icon = R.drawable.ic_play
+			)
+			Spacer(modifier = Modifier.height(16.dp))
+			HorizontalDivider(
+				modifier = Modifier.padding(horizontal = 16.dp),
+				thickness = DividerDefaults.Thickness,
+				color = DividerDefaults.color
+			)
+			Spacer(modifier = Modifier.height(16.dp))
+			Text(
+				text = stringResource(R.string.settings_options),
+				style = MaterialTheme.typography.titleMedium,
+				modifier = Modifier.padding(horizontal = 16.dp)
+			)
+			Spacer(modifier = Modifier.height(8.dp))
+			SwitchSetting(
+				getValue = { settingsViewModel.getRootInstall() },
+				setValue = { settingsViewModel.setRootInstall(it) },
+				text = stringResource(R.string.root_install),
+				icon = R.drawable.ic_root
+			)
+			SwitchSetting(
+				getValue = { settingsViewModel.getPackageInstallerInstall() },
+				setValue = { settingsViewModel.setPackageInstallerInstall(it) },
+				text = stringResource(R.string.package_installer_install),
+				icon = R.drawable.ic_install
+			)
+			SwitchSetting(
+				getValue = { settingsViewModel.getPrivAppInstall() },
+				setValue = { settingsViewModel.setPrivAppInstall(it) },
+				text = stringResource(R.string.priv_app_install),
+				icon = R.drawable.ic_system
+			)
+			SwitchSetting(
+				getValue = { !settingsViewModel.getInstallModePromptSuppressed() },
+				setValue = { settingsViewModel.setInstallModePromptSuppressed(!it) },
+				text = stringResource(R.string.install_mode_prompt),
+				icon = R.drawable.ic_info
+			)
+			SwitchSetting(
+				getValue = { settingsViewModel.getIgnoreAlpha() },
+				setValue = { settingsViewModel.setIgnoreAlpha(it) },
+				text = stringResource(R.string.ignore_alpha),
+				icon = R.drawable.ic_alpha
+			)
+			SwitchSetting(
+				getValue = { settingsViewModel.getIgnoreBeta() },
+				setValue = { settingsViewModel.setIgnoreBeta(it) },
+				text = stringResource(R.string.ignore_beta),
+				icon = R.drawable.ic_beta
+			)
+			SwitchSetting(
+				getValue = { settingsViewModel.getIgnorePreRelease() },
+				setValue = { settingsViewModel.setIgnorePreRelease(it) },
+				text = stringResource(R.string.ignore_preRelease),
+				icon = R.drawable.ic_pre_release
+			)
+			SwitchSetting(
+				getValue = { settingsViewModel.getUseSafeStores() },
+				setValue = { settingsViewModel.setUseSafeStores(it) },
+				text = stringResource(R.string.use_safe_stores),
+				icon = R.drawable.ic_safe
+			)
+			Spacer(modifier = Modifier.height(16.dp))
+		}
 	}
 }
 
@@ -90,6 +308,7 @@ fun UpdatesScreen(viewModel: UpdatesViewModel, navController: NavController, isR
 fun UpdatesTopBar(
 	searchQuery: String,
 	onSearchQueryChange: (String) -> Unit,
+	onOpenDrawer: () -> Unit,
 	onUpdateAll: () -> Unit = {}
 ) {
 	var isSearchActive by remember { mutableStateOf(false) }
@@ -98,6 +317,7 @@ fun UpdatesTopBar(
 	@Suppress("DEPRECATION")
 	val prefs: Prefs = get()
 	val currentTheme = prefs.theme.get()
+	val iconButtonModifier = Modifier.size(36.dp)
 
 	TopAppBar(
 		title = {
@@ -143,52 +363,65 @@ fun UpdatesTopBar(
 		},
 		colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.statusBarColor()),
 		navigationIcon = {
-			Box(
-			Modifier
-				.minimumInteractiveComponentSize()
-				.size(40.dp)
-				.padding(start = 8.dp),
-			Alignment.Center
-		) {
+			IconButton(
+				onClick = onOpenDrawer,
+				modifier = Modifier
+					.minimumInteractiveComponentSize()
+					.padding(start = 8.dp)
+			) {
 				Image(
 					painter = rememberAsyncImagePainter(R.mipmap.ic_launcher_round),
-					contentDescription = "App Icon",
-					modifier = Modifier.size(40.dp).clip(CircleShape).background(androidx.compose.ui.graphics.Color.White)
+					contentDescription = "Open drawer",
+					modifier = Modifier
+						.size(32.dp)
+						.clip(CircleShape)
 				)
 			}
 		},
 		actions = {
-			// Search toggle button
-			IconButton(onClick = {
-				isSearchActive = !isSearchActive
-				if (!isSearchActive) {
-					onSearchQueryChange("")
+			if (isSearchActive) {
+				IconButton(
+					onClick = {
+						isSearchActive = false
+						onSearchQueryChange("")
+					},
+					modifier = iconButtonModifier
+				) {
+					Icon(
+						imageVector = Icons.Filled.Close,
+						contentDescription = "Clear search"
+					)
 				}
-			}) {
-				Icon(
-					imageVector = Icons.Filled.Search,
-					contentDescription = "Search"
-				)
-			}
+			} else {
+				IconButton(
+					onClick = { isSearchActive = true },
+					modifier = iconButtonModifier
+				) {
+					Icon(
+						imageVector = Icons.Filled.Search,
+						contentDescription = "Search"
+					)
+				}
 
-			// Update all button
-			IconButton(onClick = {
-				showUpdateAllDialog = true
-			}) {
-				Icon(
-					imageVector = Icons.Filled.ThumbUp,
-					contentDescription = "Update All"
-				)
-			}
+				IconButton(
+					onClick = { showUpdateAllDialog = true },
+					modifier = iconButtonModifier
+				) {
+					Icon(
+						imageVector = ImageVector.vectorResource(id = R.drawable.ic_update),
+						contentDescription = "Update All"
+					)
+				}
 
-			// Theme toggle button
-			IconButton(onClick = {
-				showThemeDialog = true
-			}) {
-				Icon(
-					painter = painterResource(R.drawable.ic_daynight),
-					contentDescription = "Toggle Theme"
-				)
+				IconButton(
+					onClick = { showThemeDialog = true },
+					modifier = iconButtonModifier
+				) {
+					Icon(
+						painter = painterResource(R.drawable.ic_daynight),
+						contentDescription = "Toggle Theme"
+					)
+				}
 			}
 		}
 	)
@@ -269,10 +502,15 @@ fun UpdatesScreenLoading(
 	@Suppress("UNUSED_PARAMETER") navController: NavController,
 	isRefreshing: Boolean,
 	searchQuery: String,
-	onSearchQueryChange: (String) -> Unit
+	onSearchQueryChange: (String) -> Unit,
+	onOpenDrawer: () -> Unit
 ) = Column {
-	UpdatesTopBar(searchQuery, onSearchQueryChange)
-	if (isRefreshing) {
+	UpdatesTopBar(searchQuery, onSearchQueryChange, onOpenDrawer)
+	AnimatedVisibility(
+		visible = isRefreshing,
+		enter = fadeIn(),
+		exit = fadeOut()
+	) {
 		LinearProgressIndicator(
 			modifier = Modifier.fillMaxWidth(),
 			color = MaterialTheme.colorScheme.primary,
@@ -283,8 +521,18 @@ fun UpdatesScreenLoading(
 }
 
 @Composable
-fun UpdatesScreenError(isRefreshing: Boolean) = Column {
-	if (isRefreshing) {
+fun UpdatesScreenError(
+	isRefreshing: Boolean,
+	searchQuery: String,
+	onSearchQueryChange: (String) -> Unit,
+	onOpenDrawer: () -> Unit
+) = Column {
+	UpdatesTopBar(searchQuery, onSearchQueryChange, onOpenDrawer)
+	AnimatedVisibility(
+		visible = isRefreshing,
+		enter = fadeIn(),
+		exit = fadeOut()
+	) {
 		LinearProgressIndicator(
 			modifier = Modifier.fillMaxWidth(),
 			color = MaterialTheme.colorScheme.primary,
@@ -301,7 +549,8 @@ fun UpdatesScreenSuccess(
 	updates: List<AppUpdate>,
 	isRefreshing: Boolean,
 	searchQuery: String,
-	onSearchQueryChange: (String) -> Unit
+	onSearchQueryChange: (String) -> Unit,
+	onOpenDrawer: () -> Unit
 ) = Column {
 	val handler = LocalUriHandler.current
 	@Suppress("DEPRECATION")
@@ -317,12 +566,16 @@ fun UpdatesScreenSuccess(
 		}.sortedBy { it.name.lowercase() }
 	}
 
-	UpdatesTopBar(searchQuery, onSearchQueryChange) {
+	UpdatesTopBar(searchQuery, onSearchQueryChange, onOpenDrawer) {
 		filteredUpdates.forEach { update ->
 			viewModel.install(update, handler)
 		}
 	}
-	if (isRefreshing) {
+	AnimatedVisibility(
+		visible = isRefreshing,
+		enter = fadeIn(),
+		exit = fadeOut()
+	) {
 		LinearProgressIndicator(
 			modifier = Modifier.fillMaxWidth(),
 			color = MaterialTheme.colorScheme.primary,
@@ -331,7 +584,7 @@ fun UpdatesScreenSuccess(
 	}
 
 	when {
-		filteredUpdates.isEmpty() -> EmptyGrid()
+		filteredUpdates.isEmpty() -> EmptyUpdatesState()
 		tv -> TvGrid(viewModel, filteredUpdates, handler)
 		!tv -> ListLayout(viewModel, filteredUpdates, handler)
 	}
@@ -367,3 +620,36 @@ fun ListLayout(
 		)
 	}
 }
+
+@Composable
+private fun EmptyUpdatesState() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 32.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            imageVector = ImageVector.vectorResource(id = R.drawable.ic_update),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(72.dp)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = stringResource(R.string.all_up_to_date_title),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = stringResource(R.string.all_up_to_date_subtitle),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
+    }
+}
+

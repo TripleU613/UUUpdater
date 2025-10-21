@@ -15,10 +15,13 @@ import com.apkupdater.data.ui.Link
 import com.apkupdater.prefs.Prefs
 import com.apkupdater.util.Downloader
 import com.apkupdater.util.InstallLog
+import com.apkupdater.util.InstallModePrompt
 import com.apkupdater.util.SessionInstaller
 import com.apkupdater.util.SessionInstaller.RootInstallResult
+import com.apkupdater.util.SessionInstaller.RootFile
 import com.apkupdater.util.SnackBar
 import com.apkupdater.util.Stringer
+import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -44,12 +47,21 @@ abstract class InstallViewModel(
                 uriHandler.openUri((update.link as Link.Url).link)
             }
             else -> {
-                if (prefs.rootInstall.get() && update.link !is Link.Empty) {
-                    Log.d("InstallViewModel", "Starting root install (link type: ${update.link::class.simpleName})")
-                    downloadAndRootInstall(update)
-                } else {
-                    Log.d("InstallViewModel", "Starting normal install (link type: ${update.link::class.simpleName})")
-                    downloadAndInstall(update)
+                val usePackageInstaller = prefs.packageInstallerInstall.get()
+                val useRootInstall = prefs.rootInstall.get() && update.link !is Link.Empty
+                when {
+                    usePackageInstaller -> {
+                        Log.d("InstallViewModel", "Starting package installer install (link type: ${update.link::class.simpleName})")
+                        downloadAndInstall(update)
+                    }
+                    useRootInstall -> {
+                        Log.d("InstallViewModel", "Starting root install (link type: ${update.link::class.simpleName})")
+                        downloadAndRootInstall(update)
+                    }
+                    else -> {
+                        Log.d("InstallViewModel", "Starting normal install (link type: ${update.link::class.simpleName})")
+                        downloadAndInstall(update)
+                    }
                 }
             }
         }
@@ -85,29 +97,41 @@ abstract class InstallViewModel(
             is Link.Url -> {
                 val total = link.size.takeIf { it > 0 } ?: downloader.getContentLength(link.link).takeIf { it > 0 }
                 startProgress(id, total)
-                val (file, _) = downloadFile(id, link.link, total, 0L)
-                val extracted = runCatching { extractApksFromArchive(file) }.getOrDefault(emptyList())
+                val (downloaded, _) = downloadFile(
+                    id = id,
+                    url = link.link,
+                    total = total,
+                    offset = 0L,
+                    sessionName = sessionNameFromUrl(link.link)
+                )
+                val extracted = runCatching { extractApksFromArchive(id, downloaded.file) }.getOrDefault(emptyList())
                 if (extracted.isNotEmpty()) {
                     try {
-                        performRootInstall(id, packageName, extracted) { file.delete() }
+                        performRootInstall(id, packageName, extracted) { downloaded.file.delete() }
                     } finally {
-                        extracted.forEach { it.delete() }
+                        extracted.forEach { it.file.delete() }
                     }
                 } else {
-                    performRootInstall(id, packageName, listOf(file))
+                    performRootInstall(id, packageName, listOf(downloaded))
                 }
             }
             is Link.Xapk -> {
                 val total = downloader.getContentLength(link.link).takeIf { it > 0 }
                 startProgress(id, total)
-                val (archive, _) = downloadFile(id, link.link, total, 0L)
-                val extracted = mutableListOf<File>()
+                val (archive, _) = downloadFile(
+                    id = id,
+                    url = link.link,
+                    total = total,
+                    offset = 0L,
+                    sessionName = "package.xapk"
+                )
+                val extracted = mutableListOf<RootFile>()
                 try {
-                    extracted += extractApksFromArchive(archive)
-                    performRootInstall(id, packageName, extracted) { archive.delete() }
+                    extracted += extractApksFromArchive(id, archive.file)
+                    performRootInstall(id, packageName, extracted) { archive.file.delete() }
                 } finally {
-                    archive.delete()
-                    extracted.forEach { it.delete() }
+                    archive.file.delete()
+                    extracted.forEach { it.file.delete() }
                 }
             }
             is Link.Play -> {
@@ -118,21 +142,27 @@ abstract class InstallViewModel(
                     cancelInstall(id)
                 } else {
                     val total = remoteFiles.fold(0L) { acc, file ->
-                        val length = downloader.getContentLength(file.url)
+                        val length = if (file.size > 0) file.size else downloader.getContentLength(file.url)
                         if (length > 0) acc + length else acc
                     }.takeIf { it > 0 }
                     startProgress(id, total)
-                    val localFiles = mutableListOf<File>()
+                    val localFiles = mutableListOf<RootFile>()
                     var offset = 0L
                     try {
                         remoteFiles.forEach { remote ->
-                            val (file, bytes) = downloadFile(id, remote.url, total, offset)
+                            val (file, bytes) = downloadFile(
+                                id = id,
+                                url = remote.url,
+                                total = total,
+                                offset = offset,
+                                sessionName = remote.name.takeIf { it.isNotBlank() }
+                            )
                             offset += bytes
                             localFiles += file
                         }
                         performRootInstall(id, packageName, localFiles)
                     } catch (error: Throwable) {
-                        localFiles.forEach { it.delete() }
+                        localFiles.forEach { it.file.delete() }
                         throw error
                     }
                 }
@@ -175,7 +205,7 @@ abstract class InstallViewModel(
             updates.find { log.id == it.id }?.let { app ->
                 val text = when {
                     log.success -> stringer.get(R.string.install_success, app.name)
-                    !log.message.isNullOrBlank() -> log.message!!
+                    !log.message.isNullOrBlank() -> log.message
                     else -> stringer.get(R.string.install_failure, app.name)
                 }
                 snackBar.snackBar(viewModelScope, TextSnack(text))
@@ -186,42 +216,87 @@ abstract class InstallViewModel(
     private fun startProgress(id: Int, total: Long?) =
         installLog.emitProgress(AppInstallProgress(id, 0L, total, InstallStage.Downloading))
 
-    private fun downloadFile(id: Int, url: String, total: Long?, offset: Long): Pair<File, Long> {
+    private fun downloadFile(
+        id: Int,
+        url: String,
+        total: Long?,
+        offset: Long,
+        sessionName: String? = null
+    ): Pair<RootFile, Long> {
         var bytesCopied = 0L
         val file = downloader.download(url) { bytes ->
             bytesCopied = bytes
-            installLog.emitProgress(AppInstallProgress(id, progressValue(offset + bytes, total), total))
+            installLog.emitProgress(
+                AppInstallProgress(
+                    id = id,
+                    progress = progressValue(offset + bytes, total),
+                    total = total,
+                    stage = InstallStage.Downloading
+                )
+            )
         }
         if (bytesCopied == 0L) {
             val length = file.length()
             if (length > 0) {
                 bytesCopied = length
-                installLog.emitProgress(AppInstallProgress(id, progressValue(offset + length, total), total))
+                installLog.emitProgress(
+                    AppInstallProgress(
+                        id = id,
+                        progress = progressValue(offset + length, total),
+                        total = total,
+                        stage = InstallStage.Downloading
+                    )
+                )
             }
         }
-        return file to bytesCopied
+        val resolvedName = sessionName?.takeIf { it.isNotBlank() }
+            ?: sessionNameFromUrl(url)
+            ?: file.name
+        return RootFile(file, resolvedName) to bytesCopied
     }
 
-    private fun extractApksFromArchive(archive: File): List<File> {
-        val extracted = mutableListOf<Pair<String, File>>()
+    private fun extractApksFromArchive(id: Int, archive: File): List<RootFile> {
+        val extracted = mutableListOf<Pair<String, RootFile>>()
         try {
             ZipFile(archive).use { zip ->
-                val entries = zip.entries()
-                while (entries.hasMoreElements()) {
-                    val entry = entries.nextElement()
-                    if (!entry.isDirectory && entry.name.endsWith(".apk", true)) {
-                        val file = downloader.createTempFile(".apk")
-                        zip.getInputStream(entry).use { input ->
-                            file.outputStream().use { output ->
-                                input.copyTo(output)
-                            }
+                val apkEntries = zip.entries().asSequence()
+                    .filter { !it.isDirectory && it.name.endsWith(".apk", ignoreCase = true) }
+                    .toList()
+                if (apkEntries.isEmpty()) return emptyList()
+
+                val total = apkEntries.size.toLong()
+                installLog.emitProgress(
+                    AppInstallProgress(
+                        id = id,
+                        progress = 0L,
+                        total = total,
+                        stage = InstallStage.Installing
+                    )
+                )
+
+                var processed = 0L
+                apkEntries.forEach { entry ->
+                    val tempFile = downloader.createTempFile(".apk")
+                    val entryName = entry.name.substringAfterLast('/').ifBlank { tempFile.name }
+                    zip.getInputStream(entry).use { input ->
+                        tempFile.outputStream().use { output ->
+                            input.copyTo(output)
                         }
-                        extracted += entry.name to file
                     }
+                    processed += 1
+                    installLog.emitProgress(
+                        AppInstallProgress(
+                            id = id,
+                            progress = processed,
+                            total = total,
+                            stage = InstallStage.Installing
+                        )
+                    )
+                    extracted += entryName to RootFile(tempFile, entryName)
                 }
             }
         } catch (error: Throwable) {
-            extracted.forEach { it.second.delete() }
+            extracted.forEach { runCatching { it.second.file.delete() } }
             throw error
         }
         return extracted
@@ -232,7 +307,7 @@ abstract class InstallViewModel(
     private suspend fun performRootInstall(
         id: Int,
         packageName: String,
-        files: List<File>,
+        files: List<RootFile>,
         cleanup: (() -> Unit)? = null
     ) {
         if (files.isEmpty()) {
@@ -242,22 +317,30 @@ abstract class InstallViewModel(
             cleanup?.invoke()
             return
         }
+        val syncPrivApp = shouldSyncPrivApp(packageName)
         try {
             installLog.emitStage(id, InstallStage.Installing)
             val result = installer.rootInstall(files)
             if (result.success) {
+                if (syncPrivApp) {
+                    val privResult = installer.installAsPrivApp(packageName, files)
+                    if (!privResult.success) {
+                        val reason = privResult.humanReadableMessage()
+                        Log.w("InstallViewModel", "Priv-app sync failed for $packageName: $reason")
+                        snackBar.snackBar(
+                            viewModelScope,
+                            TextSnack(stringer.get(R.string.priv_app_install_failed_with_reason, reason))
+                        )
+                    }
+                }
                 finishInstall(id)
             } else {
-                val handled = handleRootInstallFailure(id, packageName, files, result)
-                if (!handled) {
-                    installLog.emitStage(id, InstallStage.Idle)
-                    cancelInstall(id)
-                }
+                handleRootInstallFailure(id, packageName, result)
             }
         } finally {
-            files.forEach { file ->
-                runCatching { if (file.exists()) file.delete() }
-                    .onFailure { Log.w("InstallViewModel", "Failed to delete temp file ${file.absolutePath}", it) }
+            files.forEach { rootFile ->
+                runCatching { if (rootFile.file.exists()) rootFile.file.delete() }
+                    .onFailure { Log.w("InstallViewModel", "Failed to delete temp file ${rootFile.file.absolutePath}", it) }
             }
             cleanup?.invoke()
         }
@@ -266,31 +349,29 @@ abstract class InstallViewModel(
     private suspend fun handleRootInstallFailure(
         id: Int,
         packageName: String,
-        files: List<File>,
-        result: SessionInstaller.RootInstallResult
-    ): Boolean {
+        result: RootInstallResult
+    ) {
         val reason = result.humanReadableMessage()
         Log.e("InstallViewModel", "Root install failed for $packageName: $reason")
         snackBar.snackBar(viewModelScope, TextSnack(stringer.get(R.string.root_install_failed_with_reason, reason)))
-        return fallbackToPackageInstaller(id, packageName, files, reason)
+        maybePromptInstallModeChange(packageName)
+        installLog.emitStage(id, InstallStage.Idle)
+        cancelInstall(id).join()
     }
 
-    private suspend fun fallbackToPackageInstaller(
-        id: Int,
-        packageName: String,
-        files: List<File>,
-        reason: String
-    ): Boolean = runCatching {
-        installer.installFromFiles(id, packageName, files)
-        true
-    }.getOrElse { error ->
-        val message = error.message?.ifBlank { error::class.simpleName.orEmpty() }.orEmpty()
-        Log.e("InstallViewModel", "Fallback install failed for $packageName: $message", error)
-        snackBar.snackBar(
-            viewModelScope,
-            TextSnack(stringer.get(R.string.root_install_fallback_failed, reason, message))
-        )
-        false
+    private fun shouldSyncPrivApp(packageName: String): Boolean =
+        prefs.privAppInstall.get() && installer.isPrivApp(packageName)
+
+    private fun maybePromptInstallModeChange(
+        packageName: String
+    ) {
+        if (!prefs.rootInstall.get()) return
+        if (prefs.packageInstallerInstall.get()) return
+        if (prefs.suppressInstallModePrompt.get()) return
+        val hasRoot = runCatching { Shell.getShell().isRoot }.getOrDefault(true)
+        if (!hasRoot) {
+            installLog.emitInstallModePrompt(InstallModePrompt(packageName))
+        }
     }
 
     private fun RootInstallResult.humanReadableMessage(): String {
@@ -303,6 +384,11 @@ abstract class InstallViewModel(
     }
 
     private fun progressValue(progress: Long, total: Long?) = if (total != null) min(progress, total) else progress
+
+    private fun sessionNameFromUrl(url: String): String? {
+        val candidate = url.substringAfterLast('/').substringBefore('?').substringBefore('#')
+        return candidate.takeIf { it.isNotBlank() }
+    }
 
     protected abstract fun downloadAndInstall(update: AppUpdate): Job
     protected abstract fun downloadAndRootInstall(update: AppUpdate): Job

@@ -10,17 +10,19 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -226,19 +228,6 @@ fun UpdateCard(
             )
         }
 
-        // Linear progress bar for download progress
-        if (appUpdate.installStage == InstallStage.Downloading && appUpdate.total > 0) {
-            val progress = (appUpdate.progress.toFloat() / appUpdate.total.toFloat()).coerceIn(0f, 1f)
-            LinearProgressIndicator(
-                progress = { progress },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(2.dp),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.surfaceVariant
-            )
-        }
-
         // Divider line between cards
         Box(
             modifier = Modifier
@@ -264,54 +253,39 @@ private fun UpdateActionButton(
             }
             val percentage = (progress * 100).toInt().coerceIn(0, 100)
             val percentageText = "$percentage%"
+            val shape = RoundedCornerShape(20.dp)
 
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(20.dp))
+            Surface(
+                shape = shape,
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                tonalElevation = 0.dp,
+                shadowElevation = 0.dp
             ) {
-                Button(
-                    onClick = { /* No action during download */ },
-                    enabled = false,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    ),
-                    shape = RoundedCornerShape(20.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    Text(
-                        text = percentageText,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.Transparent
-                    )
-                }
-
                 Box(
                     modifier = Modifier
-                        .matchParentSize()
-                        .clip(RoundedCornerShape(20.dp))
+                        .clip(shape)
+                        .defaultMinSize(minHeight = 40.dp)
                 ) {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth(progress)
-                            .height(40.dp)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
-                    )
-                }
-
-                Box(
-                    modifier = Modifier.matchParentSize(),
-                    contentAlignment = Alignment.Center
-                ) {
+                            .matchParentSize()
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(progress)
+                                .fillMaxHeight()
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.28f))
+                        )
+                    }
                     Text(
                         text = percentageText,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
                     )
                 }
             }

@@ -11,10 +11,12 @@ class InstallLog {
 
     private val status = MutableSharedFlow<AppInstallStatus>(100)
     private val progress = MutableSharedFlow<AppInstallProgress>(100)
+    private val prompts = MutableSharedFlow<InstallModePrompt>(extraBufferCapacity = 1)
     private var currentInstallLog: Int = 0
 
     fun status() = status.asSharedFlow()
     fun progress() = progress.asSharedFlow()
+    fun installModePrompts() = prompts.asSharedFlow()
 
     fun cancelCurrentInstall() = status.tryEmit(AppInstallStatus(false, currentInstallLog, false))
     fun emitStatus(newStatus: AppInstallStatus) = run {
@@ -28,4 +30,12 @@ class InstallLog {
 
     fun emitStage(id: Int, stage: InstallStage) = emitProgress(AppInstallProgress(id, stage = stage))
 
+    fun emitInstallModePrompt(prompt: InstallModePrompt) {
+        prompts.tryEmit(prompt)
+    }
+
 }
+
+data class InstallModePrompt(
+    val packageName: String
+)

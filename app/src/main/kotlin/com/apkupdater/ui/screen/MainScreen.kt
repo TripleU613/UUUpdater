@@ -177,7 +177,7 @@ fun NavHost(
 	appsViewModel: AppsViewModel,
 	updatesViewModel: UpdatesViewModel,
 	searchViewModel: SearchViewModel,
-	@Suppress("UNUSED_PARAMETER") settingsViewModel: SettingsViewModel,
+	settingsViewModel: SettingsViewModel,
 	isRefreshing: Boolean
 ) = NavHost(
 	navController = navController,
@@ -186,5 +186,5 @@ fun NavHost(
 ) {
 	composable(Screen.Apps.route) { AppsScreen(appsViewModel, isRefreshing) }
 	composable(Screen.Search.route) { SearchScreen(searchViewModel, isRefreshing) }
-	composable(Screen.Updates.route) { UpdatesScreen(updatesViewModel, navController, isRefreshing) }
+	composable(Screen.Updates.route) { UpdatesScreen(updatesViewModel, navController, settingsViewModel, isRefreshing) }
 }
