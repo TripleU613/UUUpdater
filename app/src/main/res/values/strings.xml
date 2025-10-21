@@ -55,7 +55,7 @@
     <string name="package_installer_install">Package Installer</string>
     <string name="priv_app_install">Priv-app Install</string>
     <string name="install_mode_prompt">Install Mode Prompt</string>
-    <string name="all_up_to_date_title">You&apos;re up to date</string>
+    <string name="all_up_to_date_title">You\'re up to date</string>
     <string name="all_up_to_date_subtitle">You have the latest versions installed.</string>
     <string name="source_apkmirror" translatable="false">ApkMirror</string>
     <string name="source_fdroid" translatable="false">F-Droid Main</string>
