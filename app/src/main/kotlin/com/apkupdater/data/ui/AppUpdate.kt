@@ -63,6 +63,14 @@ fun MutableList<AppUpdate>.setProgress(progress: AppInstallProgress): MutableLis
         return this
 }
 
+fun AppUpdate.progressFraction(): Float? = when (installStage) {
+        InstallStage.Downloading -> total
+                .takeIf { it > 0L }
+                ?.let { (progress.toFloat() / it.toFloat()).coerceIn(0f, 1f) }
+        InstallStage.Installing -> 1f
+        else -> null
+}
+
 enum class AppPackaging {
         Apk,
         Bundle

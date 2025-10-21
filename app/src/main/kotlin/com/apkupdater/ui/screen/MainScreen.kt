@@ -8,6 +8,9 @@ import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -121,13 +124,20 @@ fun MainScreen(mainViewModel: MainViewModel = koinViewModel()) {
 					.padding(padding)
 			) {
 				NavHost(navController, PaddingValues(0.dp), mainViewModel, appsViewModel, updatesViewModel, searchViewModel, settingsViewModel, isRefreshing.value)
-				PullRefreshIndicator(
-					refreshing = isRefreshing.value,
-					state = pullToRefresh,
+				val indicatorVisible = isRefreshing.value || pullToRefresh.progress > 0f
+				AnimatedVisibility(
+					visible = indicatorVisible,
 					modifier = Modifier
 						.align(Alignment.TopCenter)
-						.padding(top = 12.dp)
-				)
+						.padding(top = 12.dp),
+					enter = fadeIn(),
+					exit = fadeOut()
+				) {
+					PullRefreshIndicator(
+						refreshing = isRefreshing.value,
+						state = pullToRefresh
+					)
+				}
 			}
 		}
 	}

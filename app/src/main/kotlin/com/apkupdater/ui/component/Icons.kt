@@ -20,6 +20,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.apkupdater.R
+import com.apkupdater.data.ui.AppUpdate
 import com.apkupdater.data.ui.InstallStage
 import com.apkupdater.data.ui.Source
 import com.apkupdater.util.clickableNoRipple
@@ -96,13 +97,19 @@ fun InstallIcon(onClick: () -> Unit, modifier: Modifier = Modifier) = Icon(
 
 @Composable
 fun BoxScope.InstallProgressIcon(
-    stage: InstallStage,
+    appUpdate: AppUpdate,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    InstallIcon(
-        { onClick() },
-        Modifier.align(Alignment.TopEnd).padding(4.dp)
-    )
+    if (appUpdate.installStage == InstallStage.Idle) {
+        InstallIcon(
+            onClick = onClick,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(4.dp)
+                .then(modifier)
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

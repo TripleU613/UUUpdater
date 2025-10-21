@@ -34,7 +34,7 @@ fun AppImage(app: AppInstalled, onIgnore: (String) -> Unit = {}) = Box {
 fun UpdateImage(app: AppUpdate, onInstall: (Link) -> Unit = {}) = Box {
 	LoadingImageApp(app.packageName)
 	TextBubble(app.versionCode, Modifier.align(Alignment.BottomStart))
-        InstallProgressIcon(app.installStage) { onInstall(app.link) }
+	InstallProgressIcon(app) { onInstall(app.link) }
 	SourceIcon(
 		app.source,
 		Modifier.align(Alignment.TopStart).padding(4.dp).size(28.dp)
@@ -46,7 +46,7 @@ fun UpdateImage(app: AppUpdate, onInstall: (Link) -> Unit = {}) = Box {
 fun SearchImage(app: AppUpdate, onInstall: (Link) -> Unit = {}) = Box {
 	LoadingImage(app.iconUri)
 	TextBubble(app.versionCode, Modifier.align(Alignment.BottomStart))
-        InstallProgressIcon(app.installStage) { onInstall(app.link) }
+	InstallProgressIcon(app) { onInstall(app.link) }
 	SourceIcon(
 		app.source,
 		Modifier.align(Alignment.TopStart).padding(4.dp).size(28.dp)
