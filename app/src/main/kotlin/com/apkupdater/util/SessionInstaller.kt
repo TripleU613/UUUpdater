@@ -31,6 +31,15 @@ class SessionInstaller(
     }
 
     private val installMutex = AtomicBoolean(false)
+    private val installMultipleSupported: Boolean by lazy {
+        val result = Shell.cmd("pm help").exec()
+        if (!result.isSuccess) {
+            Log.w(SESSION_INSTALLER_TAG, "Failed to query pm help (code=${result.code}); assuming install-multiple is available.")
+            true
+        } else {
+            result.out.any { it.contains("install-multiple") }
+        }
+    }
 
     suspend fun install(id: Int, packageName: String, stream: InputStream) =
         install(id, packageName, listOf(stream))
@@ -88,10 +97,18 @@ class SessionInstaller(
         val command = if (files.size == 1) {
             "pm install -r ${files.single().quotedPath()}"
         } else {
+            if (!installMultipleSupported) {
+                Log.w(SESSION_INSTALLER_TAG, "pm install-multiple unavailable; using session-based fallback.")
+                return rootInstallViaSession(files)
+            }
             val paths = files.joinToString(" ") { it.quotedPath() }
             "pm install-multiple -r $paths"
         }
         val result = Shell.cmd(command).exec()
+        if (!result.isSuccess && files.size > 1 && (result.err + result.out).any { it.contains("Unknown command: install-multiple") }) {
+            Log.w(SESSION_INSTALLER_TAG, "pm install-multiple rejected by pm; using session-based fallback.")
+            return rootInstallViaSession(files, prefetchedStdout = result.out, prefetchedStderr = result.err)
+        }
         return RootInstallResult(result.isSuccess, result.out, result.err, result.code)
     }
 
@@ -162,3 +179,48 @@ fun InputStream.copyToAndNotify(out: OutputStream, id: Int, installLog: InstallL
 }
 
 private fun File.quotedPath() = "\"${absolutePath}\""
+
+private fun SessionInstaller.rootInstallViaSession(
+    files: List<File>,
+    prefetchedStdout: List<String> = emptyList(),
+    prefetchedStderr: List<String> = emptyList()
+): SessionInstaller.RootInstallResult {
+    val stdout = mutableListOf<String>().apply { addAll(prefetchedStdout) }
+    val stderr = mutableListOf<String>().apply { addAll(prefetchedStderr) }
+
+    val createResult = Shell.cmd("cmd package install-create -r").exec()
+    stdout += createResult.out
+    stderr += createResult.err
+    if (!createResult.isSuccess) {
+        Log.e(SESSION_INSTALLER_TAG, "install-create failed (code=${createResult.code})")
+        return SessionInstaller.RootInstallResult(false, stdout, stderr, createResult.code)
+    }
+    val sessionId = createResult.out.firstNotNullOfOrNull { line ->
+        INSTALL_SESSION_REGEX.find(line)?.groupValues?.getOrNull(1)
+    } ?: run {
+        Log.e(SESSION_INSTALLER_TAG, "Unable to parse session id from install-create output: ${createResult.out}")
+        return SessionInstaller.RootInstallResult(false, stdout, stderr, createResult.code)
+    }
+
+    files.forEach { file ->
+        val writeCmd = "cmd package install-write -S ${file.length()} $sessionId ${file.name} ${file.quotedPath()}"
+        val writeResult = Shell.cmd(writeCmd).exec()
+        stdout += writeResult.out
+        stderr += writeResult.err
+        if (!writeResult.isSuccess) {
+            Log.e(SESSION_INSTALLER_TAG, "install-write failed for ${file.name} (code=${writeResult.code})")
+            val abandonResult = Shell.cmd("cmd package install-abandon $sessionId").exec()
+            stdout += abandonResult.out
+            stderr += abandonResult.err
+            return SessionInstaller.RootInstallResult(false, stdout, stderr, writeResult.code)
+        }
+    }
+
+    val commitResult = Shell.cmd("cmd package install-commit $sessionId").exec()
+    stdout += commitResult.out
+    stderr += commitResult.err
+    return SessionInstaller.RootInstallResult(commitResult.isSuccess, stdout, stderr, commitResult.code)
+}
+
+private val INSTALL_SESSION_REGEX = Regex(".*\\[(\\d+)]")
+private const val SESSION_INSTALLER_TAG = "SessionInstaller"
