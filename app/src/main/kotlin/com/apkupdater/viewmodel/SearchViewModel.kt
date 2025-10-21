@@ -68,11 +68,22 @@ class SearchViewModel(
     }
 
     override fun cancelInstall(id: Int) = viewModelScope.launchWithMutex(mutex, Dispatchers.IO) {
-        state.value = SearchUiState.Success(state.value.mutableUpdates().setInstallStage(id, InstallStage.Idle))
+        val blocked = consumeBlockedInstall(id)
+        val updates = state.value.mutableUpdates()
+        if (blocked) {
+            clearTrackedInstall(id)
+            val remaining = updates.removeId(id)
+            state.value = SearchUiState.Success(remaining)
+            badger.changeSearchBadge(remaining.size.toString())
+        } else {
+            state.value = SearchUiState.Success(updates.setInstallStage(id, InstallStage.Idle))
+            clearTrackedInstall(id)
+        }
         installer.finish()
     }
 
     override fun finishInstall(id: Int) = viewModelScope.launchWithMutex(mutex, Dispatchers.IO) {
+        clearTrackedInstall(id)
         val updates = state.value.mutableUpdates().removeId(id)
         state.value = SearchUiState.Success(updates)
         badger.changeSearchBadge(updates.size.toString())
@@ -80,12 +91,14 @@ class SearchViewModel(
     }
 
     override fun downloadAndRootInstall(update: AppUpdate) = viewModelScope.launch(Dispatchers.IO) {
+        registerInstall(update)
         state.value = SearchUiState.Success(state.value.mutableUpdates().setInstallStage(update.id, InstallStage.Pending))
         downloadAndRootInstall(update.id, update.packageName, update.link)
     }
 
     override fun downloadAndInstall(update: AppUpdate) = viewModelScope.launch(Dispatchers.IO) {
         if(installer.checkPermission()) {
+            registerInstall(update)
             state.value = SearchUiState.Success(state.value.mutableUpdates().setInstallStage(update.id, InstallStage.Pending))
             downloadAndInstall(update.id, update.packageName, update.link)
         }

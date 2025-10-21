@@ -34,8 +34,12 @@ class SearchRepository(
 
         if (sources.isNotEmpty()) {
             sources.combine { updates ->
+                val blocked = prefs.blockedCertificateSources.get().toHashSet()
                 val result = updates.filter { it.isSuccess }.mapNotNull { it.getOrNull() }
-                emit(Result.success(result.flatten().sortedBy { it.name }))
+                val flattened = result.flatten()
+                    .filterNot { blocked.contains(it.blockKey()) }
+                    .sortedBy { it.name }
+                emit(Result.success(flattened))
             }.collect()
         } else {
             emit(Result.success(emptyList()))
@@ -46,3 +50,5 @@ class SearchRepository(
     }
 
 }
+
+private fun AppUpdate.blockKey() = "${source.name}|$packageName"

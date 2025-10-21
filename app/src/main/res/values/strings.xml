@@ -22,6 +22,7 @@
     <string name="downloading">Downloading</string>
     <string name="installing">Installing...</string>
     <string name="pending">Pending</string>
+    <string name="bundle_badge">Bundle (split APK)</string>
     <string name="install_success">%1$s installed.</string>
     <string name="install_failure">%1$s failed to install.</string>
     <string name="root_install_not_supported">Root install of this app is not supported.</string>
@@ -55,7 +56,18 @@
     <string name="package_installer_install">Package Installer</string>
     <string name="priv_app_install">Priv-app Install</string>
     <string name="install_mode_prompt">Install Mode Prompt</string>
+    <string name="authenticating">Authenticating...</string>
+    <string name="login_title">Secure Sign-in Required</string>
+    <string name="login_subtitle">Use your Google account to continue using UUUpdater.</string>
+    <string name="login_with_google">Sign in with Google</string>
+    <string name="login_google_failed">Google sign-in failed. Please try again.</string>
+    <string name="login_google_developer_error">Google sign-in failed due to OAuth client misconfiguration. Verify your Firebase credentials and SHA fingerprints.</string>
+    <string name="login_google_canceled">Google sign-in was cancelled.</string>
+    <string name="account_blocked_title">Account Suspended</string>
+    <string name="account_blocked_body">%1$s has been disabled for security reasons.</string>
+    <string name="switch_account">Use another account</string>
     <string name="all_up_to_date_title">You\'re up to date</string>
+    <string name="login_missing_config">Google Sign-In is not configured. Add an OAuth client to google-services.json (default_web_client_id).</string>
     <string name="all_up_to_date_subtitle">You have the latest versions installed.</string>
     <string name="source_apkmirror" translatable="false">ApkMirror</string>
     <string name="source_fdroid" translatable="false">F-Droid Main</string>
@@ -67,6 +79,7 @@
     <string name="source_play" translatable="false">Play</string>
     <string name="about">About</string>
     <string name="frequency">Frequency</string>
+
     <string name="theme">Theme</string>
     <string name="theme_system">System</string>
     <string name="theme_dark">Dark</string>
@@ -89,4 +102,6 @@
     </plurals>
 
 </resources>
+
+
 

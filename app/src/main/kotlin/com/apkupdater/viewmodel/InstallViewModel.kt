@@ -22,18 +22,19 @@ import com.apkupdater.util.SessionInstaller.RootFile
 import com.apkupdater.util.SnackBar
 import com.apkupdater.util.Stringer
 import com.topjohnwu.superuser.Shell
+import java.io.File
+import java.util.concurrent.ConcurrentHashMap
+import java.util.zip.ZipFile
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlin.math.min
-import java.io.File
-import java.util.zip.ZipFile
 
 
 abstract class InstallViewModel(
     private val downloader: Downloader,
     private val installer: SessionInstaller,
-    private val prefs: Prefs,
+    protected val prefs: Prefs,
     private val snackBar: SnackBar,
     private val stringer: Stringer,
     private val installLog: InstallLog
@@ -65,6 +66,26 @@ abstract class InstallViewModel(
                 }
             }
         }
+    }
+
+    private val activeInstalls = ConcurrentHashMap<Int, AppUpdate>()
+    private val blockedInstallIds = ConcurrentHashMap.newKeySet<Int>()
+
+    protected fun registerInstall(update: AppUpdate) {
+        activeInstalls[update.id] = update
+    }
+
+    protected fun clearTrackedInstall(id: Int) {
+        activeInstalls.remove(id)
+        blockedInstallIds.remove(id)
+    }
+
+    protected fun consumeBlockedInstall(id: Int): Boolean = blockedInstallIds.remove(id)
+
+    protected fun trackedInstall(id: Int): AppUpdate? = activeInstalls[id]
+
+    private fun markInstallBlocked(id: Int) {
+        blockedInstallIds.add(id)
     }
 
     protected fun subscribeToInstallStatus(updates: List<AppUpdate>) = installLog.status().onEach {
@@ -333,6 +354,7 @@ abstract class InstallViewModel(
                         )
                     }
                 }
+                clearTrackedInstall(id)
                 finishInstall(id)
             } else {
                 handleRootInstallFailure(id, packageName, result)
@@ -352,6 +374,12 @@ abstract class InstallViewModel(
         result: RootInstallResult
     ) {
         val reason = result.humanReadableMessage()
+        trackedInstall(id)?.let { update ->
+            if (isCertificateFailure(reason)) {
+                blockSourceDueToCertificates(update, reason)
+                markInstallBlocked(id)
+            }
+        }
         Log.e("InstallViewModel", "Root install failed for $packageName: $reason")
         snackBar.snackBar(viewModelScope, TextSnack(stringer.get(R.string.root_install_failed_with_reason, reason)))
         maybePromptInstallModeChange(packageName)
@@ -394,4 +422,27 @@ abstract class InstallViewModel(
     protected abstract fun downloadAndRootInstall(update: AppUpdate): Job
     protected abstract fun cancelInstall(id: Int): Job
     protected abstract fun finishInstall(id: Int): Job
+
+    private fun isCertificateFailure(reason: String): Boolean {
+        val normalized = reason.lowercase()
+        return normalized.contains("failed to collect certificates") ||
+            normalized.contains("install_parse_failed_no_certificates") ||
+            normalized.contains("failed verification of meta-inf") ||
+            normalized.contains("no verified signerinfos") ||
+            normalized.contains("failed to verify signature")
+    }
+
+    private fun blockSourceDueToCertificates(update: AppUpdate, reason: String) {
+        val key = blockKey(update)
+        val blocked = prefs.blockedCertificateSources.get().toMutableSet()
+        if (blocked.add(key)) {
+            prefs.blockedCertificateSources.put(blocked.toList())
+            Log.w(
+                "InstallViewModel",
+                "Blocking ${update.source.name} for ${update.packageName} due to certificate failure: $reason"
+            )
+        }
+    }
+
+    private fun blockKey(update: AppUpdate) = "${update.source.name}|${update.packageName}"
 }

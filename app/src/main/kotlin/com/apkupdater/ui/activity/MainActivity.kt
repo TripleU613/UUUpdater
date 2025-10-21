@@ -3,12 +3,25 @@ package com.apkupdater.ui.activity
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.apkupdater.ui.screen.AuthGate
 import com.apkupdater.ui.screen.MainScreen
-
+import com.apkupdater.viewmodel.AuthViewModel
+import org.koin.androidx.compose.koinViewModel
 
 class MainActivity : ComponentActivity() {
-	override fun onCreate(savedInstanceState: Bundle?) {
-		super.onCreate(savedInstanceState)
-		setContent { MainScreen() }
-	}
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            val authViewModel: AuthViewModel = koinViewModel()
+            val authState = authViewModel.state.collectAsStateWithLifecycle().value
+
+            AuthGate(
+                authState = authState,
+                viewModel = authViewModel
+            ) {
+                MainScreen()
+            }
+        }
+    }
 }

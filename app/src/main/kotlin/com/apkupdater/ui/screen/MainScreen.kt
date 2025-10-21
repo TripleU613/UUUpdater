@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.BadgedBox
@@ -24,6 +25,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.pullrefresh.PullRefreshIndicator
 import androidx.compose.material3.pullrefresh.pullRefresh
 import androidx.compose.material3.pullrefresh.rememberPullRefreshState
 import androidx.compose.runtime.Composable
@@ -112,8 +114,20 @@ fun MainScreen(mainViewModel: MainViewModel = koinViewModel()) {
 		Scaffold(
 			snackbarHost = { SnackbarHost(snackBarHostState) }
 		) { padding ->
-			Box(modifier = Modifier.pullRefresh(pullToRefresh).padding(padding)) {
+			Box(
+				modifier = Modifier
+					.fillMaxSize()
+					.pullRefresh(pullToRefresh)
+					.padding(padding)
+			) {
 				NavHost(navController, PaddingValues(0.dp), mainViewModel, appsViewModel, updatesViewModel, searchViewModel, settingsViewModel, isRefreshing.value)
+				PullRefreshIndicator(
+					refreshing = isRefreshing.value,
+					state = pullToRefresh,
+					modifier = Modifier
+						.align(Alignment.TopCenter)
+						.padding(top = 12.dp)
+				)
 			}
 		}
 	}

@@ -39,7 +39,13 @@ class UpdatesRepository(
 
                 if (sources.isNotEmpty()) {
                     sources
-                        .combine { updates -> emit(updates.flatMap { it }) }
+                        .combine { updates ->
+                            val blocked = prefs.blockedCertificateSources.get().toHashSet()
+                            val flattened = updates
+                                .flatMap { it }
+                                .filterNot { blocked.contains(it.blockKey()) }
+                            emit(flattened)
+                        }
                         .collect()
                 } else {
                     emit(emptyList())
@@ -53,3 +59,5 @@ class UpdatesRepository(
     }
 
 }
+
+private fun AppUpdate.blockKey() = "${source.name}|$packageName"

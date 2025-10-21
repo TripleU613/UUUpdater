@@ -16,6 +16,7 @@ data class AppUpdate(
         val installStage: InstallStage = InstallStage.Idle,
         val total: Long = 0L,
         val progress: Long = 0L,
+        val packaging: AppPackaging = AppPackaging.Apk,
         val id: Int = "${source.name}.$packageName.$versionCode.$version".hashCode()
 )
 
@@ -38,9 +39,9 @@ fun MutableList<AppUpdate>.setInstallStage(id: Int, stage: InstallStage): Mutabl
 }
 
 fun MutableList<AppUpdate>.removeId(id: Int): List<AppUpdate> {
-	val index = this.indexOf(id)
-	if (index != -1) this.removeAt(index)
-	return this
+        val index = this.indexOf(id)
+        if (index != -1) this.removeAt(index)
+        return this
 }
 
 fun MutableList<AppUpdate>.setProgress(progress: AppInstallProgress): MutableList<AppUpdate> {
@@ -60,4 +61,9 @@ fun MutableList<AppUpdate>.setProgress(progress: AppInstallProgress): MutableLis
                 }
         }
         return this
+}
+
+enum class AppPackaging {
+        Apk,
+        Bundle
 }

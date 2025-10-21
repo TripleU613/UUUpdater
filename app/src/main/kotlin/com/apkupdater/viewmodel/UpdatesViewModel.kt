@@ -26,7 +26,7 @@ import kotlinx.coroutines.sync.Mutex
 class UpdatesViewModel(
 	private val updatesRepository: UpdatesRepository,
 	private val installer: SessionInstaller,
-	private val prefs: Prefs,
+	prefs: Prefs,
 	private val badger: Badger,
 	downloader: Downloader,
 	snackBar: SnackBar,
@@ -61,27 +61,38 @@ class UpdatesViewModel(
 		setSuccess(state.value.mutableUpdates())
 	}
 
-        override fun cancelInstall(id: Int) = viewModelScope.launchWithMutex(mutex, Dispatchers.IO) {
-                state.value = UpdatesUiState.Success(state.value.mutableUpdates().setInstallStage(id, InstallStage.Idle))
-                installer.finish()
+    override fun cancelInstall(id: Int) = viewModelScope.launchWithMutex(mutex, Dispatchers.IO) {
+        val blocked = consumeBlockedInstall(id)
+        val updates = state.value.mutableUpdates()
+        if (blocked) {
+            clearTrackedInstall(id)
+            setSuccess(updates.removeId(id))
+        } else {
+            state.value = UpdatesUiState.Success(updates.setInstallStage(id, InstallStage.Idle))
+            clearTrackedInstall(id)
         }
+        installer.finish()
+    }
 
-        override fun finishInstall(id: Int) = viewModelScope.launchWithMutex(mutex, Dispatchers.IO) {
-                setSuccess(state.value.mutableUpdates().removeId(id))
-                installer.finish()
-        }
+    override fun finishInstall(id: Int) = viewModelScope.launchWithMutex(mutex, Dispatchers.IO) {
+        clearTrackedInstall(id)
+        setSuccess(state.value.mutableUpdates().removeId(id))
+        installer.finish()
+    }
 
-        override fun downloadAndRootInstall(update: AppUpdate) = viewModelScope.launch(Dispatchers.IO) {
-                state.value = UpdatesUiState.Success(state.value.mutableUpdates().setInstallStage(update.id, InstallStage.Pending))
-                downloadAndRootInstall(update.id, update.packageName, update.link)
-        }
+    override fun downloadAndRootInstall(update: AppUpdate) = viewModelScope.launch(Dispatchers.IO) {
+        registerInstall(update)
+        state.value = UpdatesUiState.Success(state.value.mutableUpdates().setInstallStage(update.id, InstallStage.Pending))
+        downloadAndRootInstall(update.id, update.packageName, update.link)
+    }
 
-        override fun downloadAndInstall(update: AppUpdate) = viewModelScope.launch(Dispatchers.IO) {
-                if(installer.checkPermission()) {
-                        state.value = UpdatesUiState.Success(state.value.mutableUpdates().setInstallStage(update.id, InstallStage.Pending))
-                        downloadAndInstall(update.id, update.packageName, update.link)
-                }
+    override fun downloadAndInstall(update: AppUpdate) = viewModelScope.launch(Dispatchers.IO) {
+        if(installer.checkPermission()) {
+            registerInstall(update)
+            state.value = UpdatesUiState.Success(state.value.mutableUpdates().setInstallStage(update.id, InstallStage.Pending))
+            downloadAndInstall(update.id, update.packageName, update.link)
         }
+    }
 
 	private fun List<AppUpdate>.filterIgnoredVersions(ignoredVersions: List<Int>) = this
 		.filter { !ignoredVersions.contains(it.id) }

@@ -20,7 +20,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -40,14 +39,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
-import coil.request.CachePolicy
 import com.apkupdater.R
+import com.apkupdater.data.ui.AppPackaging
 import com.apkupdater.data.ui.AppUpdate
 import com.apkupdater.data.ui.InstallStage
 import com.apkupdater.data.ui.Link
 import com.apkupdater.util.getAppName
 import com.apkupdater.util.getAppIcon
+import coil.compose.AsyncImage
+import coil.request.CachePolicy
 
 @Composable
 fun UpdateCard(
@@ -67,50 +67,17 @@ fun UpdateCard(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // App Icon with progress indicator overlay
+            // App Icon
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier.size(56.dp)
             ) {
-                // Base icon - circular with caching and lazy loading
                 LazyLoadImage(
                     packageName = appUpdate.packageName,
                     modifier = Modifier
                         .size(48.dp)
                         .clip(CircleShape)
                 )
-
-                // Progress ring around icon for downloading/installing
-                when (appUpdate.installStage) {
-                    InstallStage.Downloading -> {
-                        if (appUpdate.total > 0) {
-                            val progress = (appUpdate.progress.toFloat() / appUpdate.total.toFloat()).coerceIn(0f, 1f)
-                            CircularProgressIndicator(
-                                progress = { progress },
-                                modifier = Modifier.size(56.dp),
-                                strokeWidth = 3.dp,
-                                color = MaterialTheme.colorScheme.primary,
-                                trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                            )
-                        } else {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(56.dp),
-                                strokeWidth = 3.dp,
-                                color = MaterialTheme.colorScheme.primary,
-                                trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                            )
-                        }
-                    }
-                    InstallStage.Pending, InstallStage.Installing -> {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(56.dp),
-                            strokeWidth = 3.dp,
-                            color = MaterialTheme.colorScheme.primary,
-                            trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                        )
-                    }
-                    InstallStage.Idle -> Unit
-                }
             }
 
             Spacer(modifier = Modifier.width(16.dp))
@@ -185,6 +152,21 @@ fun UpdateCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 4.dp)
                     )
+
+                    if (appUpdate.packaging == AppPackaging.Bundle) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = stringResource(R.string.bundle_badge),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier
+                                .background(
+                                    color = MaterialTheme.colorScheme.secondaryContainer,
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .padding(horizontal = 8.dp, vertical = 2.dp)
+                        )
+                    }
 
                     // Divider after package name
                     androidx.compose.material3.HorizontalDivider(

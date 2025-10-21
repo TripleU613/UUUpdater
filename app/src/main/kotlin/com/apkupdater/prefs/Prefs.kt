@@ -43,4 +43,5 @@ class Prefs(
 	val lastTab = string("lastTab", defValue = Screen.Updates.route, backed = true)
 	val playAuthData = json("playAuthData", AuthData("", ""), true)
 	val lastPlayCheck = long("lastPlayCheck", 0L, true)
+	val blockedCertificateSources = json("blockedCertificateSources", emptyList<String>(), true)
 }

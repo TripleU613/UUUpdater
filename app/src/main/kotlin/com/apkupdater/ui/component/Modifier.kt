@@ -26,30 +26,33 @@ fun Modifier.shimmering(
     enabled: Boolean,
     baseColor: Color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
     highlightColor: Color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
-): Modifier = composed {
-    if (enabled) {
+): Modifier {
+    if (!enabled) return this
+
+    return composed {
         var size by remember { mutableStateOf(IntSize.Zero) }
         val transition = rememberInfiniteTransition(label = "shimmering")
         val startOffsetX by transition.animateFloat(
             label = "shimmering_offset",
             initialValue = -2 * size.width.toFloat(),
             targetValue = 2 * size.width.toFloat(),
-            animationSpec = infiniteRepeatable(animation = tween(durationMillis = 1200, easing = FastOutSlowInEasing))
-        )
-        background(
-            brush = Brush.linearGradient(
-                colors = listOf(
-                    baseColor.copy(alpha = 0.7f),
-                    highlightColor.copy(alpha = 0.9f),
-                    baseColor.copy(alpha = 0.7f)
-                ),
-                start = Offset(startOffsetX, 0f),
-                end = Offset(startOffsetX + size.width.toFloat(), size.height.toFloat())
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 1200, easing = FastOutSlowInEasing)
             )
-        ).onGloballyPositioned {
-            size = it.size
-        }
-    } else {
-        Modifier
+        )
+
+        this
+            .background(
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        baseColor.copy(alpha = 0.7f),
+                        highlightColor.copy(alpha = 0.9f),
+                        baseColor.copy(alpha = 0.7f)
+                    ),
+                    start = Offset(startOffsetX, 0f),
+                    end = Offset(startOffsetX + size.width.toFloat(), size.height.toFloat())
+                )
+            )
+            .onGloballyPositioned { size = it.size }
     }
 }

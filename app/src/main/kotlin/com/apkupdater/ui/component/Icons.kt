@@ -5,7 +5,6 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -100,18 +99,10 @@ fun BoxScope.InstallProgressIcon(
     stage: InstallStage,
     onClick: () -> Unit
 ) {
-    if(stage != InstallStage.Idle) {
-        CircularProgressIndicator(
-            Modifier.align(Alignment.TopEnd).size(30.dp).padding(4.dp),
-            color = MaterialTheme.colorScheme.primary
-        )
-    }
-    else {
-        InstallIcon(
-            { onClick() },
-            Modifier.align(Alignment.TopEnd).padding(4.dp)
-        )
-    }
+    InstallIcon(
+        { onClick() },
+        Modifier.align(Alignment.TopEnd).padding(4.dp)
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

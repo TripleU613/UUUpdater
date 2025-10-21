@@ -18,14 +18,25 @@ class AppsRepository(
 ) {
 
 	suspend fun getApps() = flow {
-		val apps = context.packageManager
+		val pm = context.packageManager
+		val ignoreSystem = excludeSystem()
+		val ignoreDisabled = excludeDisabled()
+		val ignoreStore = excludeStore()
+		val ignored = ignoredApps()
+
+		val apps = pm
 			.getInstalledPackages(PackageManager.MATCH_ALL + getSignatureFlag())
 			.asSequence()
-			.filter { !excludeSystem() || it.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM == 0 }
-			.filter { !excludeSystem() || it.applicationInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP == 0 }
-			.filter { !excludeDisabled() || it.applicationInfo.enabled }
-			.filter { !excludeStore() || !isAppStore(getInstallerPackageName(it.packageName)) }
-			.map { it.toAppInstalled(context, ignoredApps()) }
+			.mapNotNull { packageInfo ->
+				val info = packageInfo.applicationInfo ?: return@mapNotNull null
+
+				if (ignoreSystem && info.flags and ApplicationInfo.FLAG_SYSTEM != 0) return@mapNotNull null
+				if (ignoreSystem && info.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP != 0) return@mapNotNull null
+				if (ignoreDisabled && info.enabled.not()) return@mapNotNull null
+				if (ignoreStore && isAppStore(getInstallerPackageName(packageInfo.packageName))) return@mapNotNull null
+
+				packageInfo.toAppInstalled(context, ignored)
+			}
 			.sortedBy { it.name }
 			.sortedBy { it.ignored }
 			.toList()
@@ -52,9 +63,13 @@ class AppsRepository(
 	@Suppress("DEPRECATION")
 	private fun getInstallerPackageName(packageName: String): String {
 		return if (Build.VERSION.SDK_INT < 30) {
-			context.packageManager.getInstallerPackageName(packageName).orEmpty()
+			runCatching { context.packageManager.getInstallerPackageName(packageName) }
+				.getOrNull()
+				.orEmpty()
 		} else {
-			context.packageManager.getInstallSourceInfo(packageName).installingPackageName.orEmpty()
+			runCatching { context.packageManager.getInstallSourceInfo(packageName).installingPackageName }
+				.getOrNull()
+				.orEmpty()
 		}
 	}
 

@@ -10,6 +10,7 @@ import com.apkupdater.repository.ApkMirrorRepository
 import com.apkupdater.repository.ApkPureRepository
 import com.apkupdater.repository.AppsRepository
 import com.apkupdater.repository.AptoideRepository
+import com.apkupdater.repository.AuthRepository
 import com.apkupdater.repository.FdroidRepository
 import com.apkupdater.repository.GitHubRepository
 import com.apkupdater.repository.GitLabRepository
@@ -36,6 +37,7 @@ import com.apkupdater.util.isAndroidTv
 import com.apkupdater.util.play.PlayHttpClient
 import com.apkupdater.viewmodel.AppsViewModel
 import com.apkupdater.viewmodel.MainViewModel
+import com.apkupdater.viewmodel.AuthViewModel
 import com.apkupdater.viewmodel.SearchViewModel
 import com.apkupdater.viewmodel.SettingsViewModel
 import com.apkupdater.viewmodel.UpdatesViewModel
@@ -51,6 +53,8 @@ import org.koin.dsl.module
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.io.File
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
 
 
 val mainModule = module {
@@ -184,7 +188,15 @@ val mainModule = module {
 
 	single { PlayHttpClient(get()) }
 
+	single { FirebaseAuth.getInstance() }
+
+	single { FirebaseDatabase.getInstance() }
+
+	single { AuthRepository(get(), get()) }
+
 	viewModel { MainViewModel(get(), get()) }
+
+	viewModel { AuthViewModel(get()) }
 
 	viewModel { AppsViewModel(get(), get(), get()) }
 
