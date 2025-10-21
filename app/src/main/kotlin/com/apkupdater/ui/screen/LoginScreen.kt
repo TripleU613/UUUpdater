@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.apkupdater.ui.screen
 
 import android.app.Activity
@@ -28,13 +30,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import coil.compose.rememberAsyncImagePainter
+import coil.request.ImageRequest
 import com.apkupdater.R
 import com.apkupdater.data.ui.AuthUiState
+import com.apkupdater.util.clickableNoRipple
 import com.apkupdater.viewmodel.AuthViewModel
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
@@ -110,34 +114,49 @@ private fun LoginScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.ic_update),
-                contentDescription = null,
-                modifier = Modifier.size(96.dp)
+            val iconPainter = rememberAsyncImagePainter(
+                ImageRequest.Builder(context)
+                    .data(R.mipmap.ic_launcher_round)
+                    .crossfade(true)
+                    .build()
             )
-            Spacer(modifier = Modifier.height(24.dp))
+            Image(
+                painter = iconPainter,
+                contentDescription = null,
+                modifier = Modifier.size(120.dp)
+            )
+            Spacer(modifier = Modifier.height(32.dp))
             Text(
-                text = stringResource(R.string.login_title),
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.SemiBold,
+                text = stringResource(R.string.login_welcome_title),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = stringResource(R.string.login_welcome_subtitle),
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(32.dp))
             val displayMessage = when {
                 configError != null -> stringResource(R.string.login_missing_config)
                 message != null -> message
-                else -> stringResource(R.string.login_subtitle)
+                else -> ""
             }
-            Text(
-                text = displayMessage,
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center,
-                color = when {
-                    isError || configError != null -> MaterialTheme.colorScheme.error
-                    else -> MaterialTheme.colorScheme.onSurfaceVariant
-                }
-            )
-            Spacer(modifier = Modifier.height(32.dp))
+            if (displayMessage.isNotBlank()) {
+                Text(
+                    text = displayMessage,
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                    color = when {
+                        isError || configError != null -> MaterialTheme.colorScheme.error
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+            }
             Button(
                 onClick = {
                     isLaunching = true
@@ -152,6 +171,20 @@ private fun LoginScreen(
             if (isLaunching) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = stringResource(R.string.login_created_by),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                modifier = Modifier.clickableNoRipple {
+                    val intent = android.content.Intent(
+                        android.content.Intent.ACTION_VIEW,
+                        android.net.Uri.parse("https://tripleu.org")
+                    )
+                    context.startActivity(intent)
+                },
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
@@ -227,6 +260,6 @@ private fun handleGoogleResult(
         }
         viewModel.onGoogleSignInError(message)
     } catch (error: Exception) {
-        viewModel.onGoogleSignInError(context.getString(R.string.login_google_failed))
+            viewModel.onGoogleSignInError(context.getString(R.string.login_google_failed))
     }
 }

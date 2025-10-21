@@ -58,6 +58,8 @@
     <string name="install_mode_prompt">Install Mode Prompt</string>
     <string name="authenticating">Authenticating...</string>
     <string name="login_title">Secure Sign-in Required</string>
+    <string name="login_welcome_title">Welcome to UUUpdater</string>
+    <string name="login_welcome_subtitle">Please sign in with Google to continue.</string>
     <string name="login_subtitle">Use your Google account to continue using UUUpdater.</string>
     <string name="login_with_google">Sign in with Google</string>
     <string name="login_google_failed">Google sign-in failed. Please try again.</string>
@@ -101,6 +103,7 @@
         <item quantity="other">Found %1$d updates.</item>
     </plurals>
 
+    <string name="login_created_by">Created by TripleUTech</string>
 </resources>
 
 
