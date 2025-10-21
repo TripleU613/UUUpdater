@@ -74,10 +74,21 @@ class SessionInstaller(
         }
     }
 
-    fun rootInstall(file: File): Boolean {
-        val res = Shell.cmd("pm install -r ${file.absolutePath}").exec().isSuccess
-        file.delete()
-        return res
+    fun rootInstall(file: File): Boolean = rootInstall(listOf(file))
+
+    fun rootInstall(files: List<File>): Boolean {
+        if (files.isEmpty()) return false
+        val command = if (files.size == 1) {
+            "pm install -r ${files.single().quotedPath()}"
+        } else {
+            val paths = files.joinToString(" ") { it.quotedPath() }
+            "pm install-multiple -r $paths"
+        }
+        return try {
+            Shell.cmd(command).exec().isSuccess
+        } finally {
+            files.forEach { it.delete() }
+        }
     }
 
     fun finish() = installMutex.unlock()
@@ -108,7 +119,6 @@ class SessionInstaller(
 
         // Install all the apks
         // TODO: Try to install only needed apks
-        // TODO: Add root install support
         val apks = entries.filter { it.name.contains(".apk") }.map { zip.getInputStream(it) }
         install(id, packageName, apks)
 
@@ -137,3 +147,5 @@ fun InputStream.copyToAndNotify(out: OutputStream, id: Int, installLog: InstallL
     Log.d("SessionInstaller", "Finished copying: id=$id, totalBytesCopied=$bytesCopied")
     return bytesCopied
 }
+
+private fun File.quotedPath() = "\"${absolutePath}\""

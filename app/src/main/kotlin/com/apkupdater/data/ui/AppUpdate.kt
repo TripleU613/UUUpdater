@@ -1,7 +1,6 @@
 package com.apkupdater.data.ui
 
 import android.net.Uri
-import android.util.Log
 
 data class AppUpdate(
 	val name: String,
@@ -37,22 +36,15 @@ fun MutableList<AppUpdate>.removeId(id: Int): List<AppUpdate> {
 }
 
 fun MutableList<AppUpdate>.setProgress(progress: AppInstallProgress): MutableList<AppUpdate> {
-	val index = this.indexOf(progress.id)
-	Log.d("AppUpdate", "setProgress: id=${progress.id}, index=$index, progress=${progress.progress}, total=${progress.total}")
-	if (index != -1) {
-		val app = this[index]
-		Log.d("AppUpdate", "Found app: ${app.name}, current progress=${app.progress}, current total=${app.total}")
-		progress.progress?.let {
-			this[index] = this[index].copy(progress = it)
-			Log.d("AppUpdate", "Updated progress to $it")
-		}
-		progress.total?.let {
-			this[index] = this[index].copy(total = it)
-			Log.d("AppUpdate", "Updated total to $it")
-		}
-		Log.d("AppUpdate", "After update: progress=${this[index].progress}, total=${this[index].total}")
-	} else {
-		Log.w("AppUpdate", "App not found for id=${progress.id}")
-	}
-	return this
+        val index = this.indexOf(progress.id)
+        if (index != -1) {
+                val app = this[index]
+                progress.progress?.let {
+                        this[index] = this[index].copy(progress = it)
+                }
+                progress.total?.let {
+                        this[index] = this[index].copy(total = it)
+                }
+        }
+        return this
 }
