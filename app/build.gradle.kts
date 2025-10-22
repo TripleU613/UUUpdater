@@ -13,13 +13,18 @@ android {
     namespace = "com.apkupdater"
     compileSdk = 35
 
+    val versionNameOverride = System.getenv("VERSION_NAME").orEmpty()
     val buildNumber = System.getenv("BUILD_NUMBER").orEmpty()
     defaultConfig {
         applicationId = "com.apkupdater" + System.getenv("BUILD_TAG").orEmpty()
         minSdk = 23
         targetSdk = 35
         versionCode = 52
-        versionName = if (buildNumber.isEmpty()) "3.0.3" else "0.0.$buildNumber"
+        versionName = when {
+            versionNameOverride.isNotEmpty() -> versionNameOverride
+            buildNumber.isNotEmpty() -> "0.0.$buildNumber"
+            else -> "3.0.3"
+        }
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
         multiDexEnabled = true
