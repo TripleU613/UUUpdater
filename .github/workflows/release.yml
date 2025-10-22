@@ -23,11 +23,15 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
+            const core = require('@actions/core');
             const tagRefPrefix = 'refs/tags/';
             if (context.ref.startsWith(tagRefPrefix)) {
               const tag = context.ref.substring(tagRefPrefix.length);
               const version = tag.startsWith('v') ? tag.substring(1) : tag;
               const buildNumber = version.split('.').pop() ?? '';
+              core.setOutput('version', version);
+              core.setOutput('tag', tag);
+              core.setOutput('build_number', buildNumber);
               return { version, tag, build_number: buildNumber };
             }
 
@@ -55,6 +59,9 @@ jobs:
             const version = parts.join('.');
             const tag = `v${version}`;
             const buildNumber = String(parts[2]);
+            core.setOutput('version', version);
+            core.setOutput('tag', tag);
+            core.setOutput('build_number', buildNumber);
             return { version, tag, build_number: buildNumber };
 
       - name: Set up Java 17
