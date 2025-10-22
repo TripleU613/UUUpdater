@@ -42,7 +42,7 @@ class SessionInstaller(
         }
     }
     private val installMultipleSupported: Boolean by lazy {
-        pmHelpLines?.any { it.contains("install-multiple") } ?: true
+        pmHelpLines?.any { it.contains("install-multiple") } ?: false
     }
     private val verificationFlags: String by lazy {
         val help = pmHelpLines ?: return@lazy ""
@@ -135,8 +135,11 @@ class SessionInstaller(
             stderr += result.err
         }
 
-        if (!result.isSuccess && files.size > 1 && (result.err + result.out).any { it.contains("Unknown command: install-multiple") }) {
-            Log.w(SESSION_INSTALLER_TAG, "pm install-multiple rejected by pm; using session-based fallback.")
+        if (!result.isSuccess && files.size > 1) {
+            Log.w(
+                SESSION_INSTALLER_TAG,
+                "pm install-multiple failed (code=${result.code}); using session-based fallback."
+            )
             return rootInstallViaSession(files, prefetchedStdout = stdout, prefetchedStderr = stderr)
         }
         return RootInstallResult(result.isSuccess, stdout, stderr, result.code)
