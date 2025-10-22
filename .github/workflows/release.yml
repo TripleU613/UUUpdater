@@ -23,7 +23,6 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const core = require('@actions/core');
             const tagRefPrefix = 'refs/tags/';
             if (context.ref.startsWith(tagRefPrefix)) {
               const tag = context.ref.substring(tagRefPrefix.length);
