@@ -2,6 +2,7 @@ package com.apkupdater.repository
 
 import android.util.Log
 import com.apkupdater.data.ui.AppUpdate
+import com.apkupdater.data.ui.blockKey
 import com.apkupdater.prefs.Prefs
 import com.apkupdater.util.combine
 import kotlinx.coroutines.flow.Flow
@@ -34,10 +35,14 @@ class SearchRepository(
 
         if (sources.isNotEmpty()) {
             sources.combine { updates ->
-                val blocked = prefs.blockedCertificateSources.get().toHashSet()
+                val blockedCertificates = prefs.blockedCertificateSources.get().toHashSet()
+                val blockedInstallFailures = prefs.blockedInstallFailures.get().toHashSet()
                 val result = updates.filter { it.isSuccess }.mapNotNull { it.getOrNull() }
                 val flattened = result.flatten()
-                    .filterNot { blocked.contains(it.blockKey()) }
+                    .filterNot {
+                        val key = it.blockKey()
+                        blockedCertificates.contains(key) || blockedInstallFailures.contains(key)
+                    }
                     .sortedBy { it.name }
                 emit(Result.success(flattened))
             }.collect()
@@ -48,7 +53,4 @@ class SearchRepository(
         emit(Result.failure(it))
         Log.e("SearchRepository", "Error searching.", it)
     }
-
 }
-
-private fun AppUpdate.blockKey() = "${source.name}|$packageName"

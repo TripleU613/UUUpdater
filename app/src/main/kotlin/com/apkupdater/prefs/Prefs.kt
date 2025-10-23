@@ -44,4 +44,5 @@ class Prefs(
 	val playAuthData = json("playAuthData", AuthData("", ""), true)
 	val lastPlayCheck = long("lastPlayCheck", 0L, true)
 	val blockedCertificateSources = json("blockedCertificateSources", emptyList<String>(), true)
+	val blockedInstallFailures = json("blockedInstallFailures", emptyList<String>(), true)
 }

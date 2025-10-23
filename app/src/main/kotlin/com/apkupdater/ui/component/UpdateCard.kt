@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -38,6 +39,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import kotlin.math.log10
+import kotlin.math.pow
 import androidx.compose.ui.unit.sp
 import com.apkupdater.R
 import com.apkupdater.data.ui.AppPackaging
@@ -232,13 +235,20 @@ private fun UpdateActionButton(
 ) {
     when (appUpdate.installStage) {
         InstallStage.Downloading -> {
-            val progress = if (appUpdate.total > 0) {
-                (appUpdate.progress.toFloat() / appUpdate.total.toFloat()).coerceIn(0f, 1f)
+            val totalBytes = appUpdate.total
+            val hasTotal = totalBytes > 0
+            val progressBytes = appUpdate.progress
+            val progressRatio = if (hasTotal) {
+                (progressBytes.toFloat() / totalBytes.toFloat()).coerceIn(0f, 1f)
             } else {
-                0f
+                null
             }
-            val percentage = (progress * 100).toInt().coerceIn(0, 100)
-            val percentageText = "$percentage%"
+            val labelText = when {
+                progressRatio != null -> "${(progressRatio * 100).toInt().coerceIn(0, 100)}%"
+                progressBytes > 0L -> formatBytes(progressBytes)
+                else -> stringResource(R.string.downloading)
+            }
+            val progressValue = progressRatio ?: 0f
             val shape = RoundedCornerShape(20.dp)
 
             Surface(
@@ -257,20 +267,20 @@ private fun UpdateActionButton(
                         modifier = Modifier
                             .matchParentSize()
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth(progress)
-                                .fillMaxHeight()
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.28f))
-                        )
-                    }
-                    Text(
-                        text = percentageText,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    Box(
                         modifier = Modifier
-                            .align(Alignment.Center)
+                            .fillMaxWidth(progressValue)
+                            .fillMaxHeight()
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.28f))
+                    )
+                }
+                Text(
+                    text = labelText,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .align(Alignment.Center)
                             .padding(horizontal = 16.dp, vertical = 8.dp)
                     )
                 }
@@ -289,11 +299,21 @@ private fun UpdateActionButton(
                 shape = RoundedCornerShape(20.dp),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                Text(
-                    text = stringResource(R.string.installing),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Medium
-                )
+                androidx.compose.foundation.layout.Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = stringResource(R.string.installing),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
         }
         InstallStage.Pending -> {
@@ -337,6 +357,14 @@ private fun UpdateActionButton(
             }
         }
     }
+}
+
+private fun formatBytes(bytes: Long): String {
+    if (bytes <= 0) return "0 B"
+    val units = arrayOf("B", "KB", "MB", "GB", "TB")
+    val digitGroups = (log10(bytes.toDouble()) / log10(1024.0)).toInt().coerceIn(0, units.lastIndex)
+    val value = bytes / 1024.0.pow(digitGroups.toDouble())
+    return String.format("%.1f %s", value, units[digitGroups])
 }
 
 @Composable

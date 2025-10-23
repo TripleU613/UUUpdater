@@ -25,5 +25,5 @@ fun App.toAppUpdate(app: AppInstalled?) = AppUpdate(
 	oldVersionCode = app?.versionCode ?: 0L,
 	source = AptoideSource,
 	iconUri = icon?.toUri() ?: Uri.EMPTY,
-	link = Link.Url(file.path)
+    link = Link.Url(file.path, file.size)
 )

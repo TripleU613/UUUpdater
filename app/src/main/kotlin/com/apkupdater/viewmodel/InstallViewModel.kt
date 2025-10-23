@@ -12,6 +12,7 @@ import com.apkupdater.data.ui.AppInstallStatus
 import com.apkupdater.data.ui.AppUpdate
 import com.apkupdater.data.ui.InstallStage
 import com.apkupdater.data.ui.Link
+import com.apkupdater.data.ui.blockKey
 import com.apkupdater.prefs.Prefs
 import com.apkupdater.util.Downloader
 import com.apkupdater.util.InstallLog
@@ -21,10 +22,10 @@ import com.apkupdater.util.SessionInstaller.RootInstallResult
 import com.apkupdater.util.SessionInstaller.RootFile
 import com.apkupdater.util.SnackBar
 import com.apkupdater.util.Stringer
+import com.apkupdater.util.XapkInstaller
 import com.topjohnwu.superuser.Shell
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
-import java.util.zip.ZipFile
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -41,6 +42,16 @@ abstract class InstallViewModel(
 ): ViewModel() {
 
     fun install(update: AppUpdate, uriHandler: UriHandler) {
+        val blockedKey = update.blockKey()
+        if (prefs.blockedInstallFailures.get().contains(blockedKey)) {
+            Log.w("InstallViewModel", "Skipping install for ${update.packageName} from ${update.source.name} (blocked due to previous root failures).")
+            snackBar.snackBar(
+                viewModelScope,
+                TextSnack(stringer.get(R.string.root_install_blocked_for_version, update.name, update.source.name))
+            )
+            installLog.emitProgress(AppInstallProgress(update.id, 0L, 0L, InstallStage.Idle))
+            return
+        }
         Log.d("InstallViewModel", "install() called for: ${update.name}, source: ${update.source}, link: ${update.link}")
         when (update.source) {
             ApkMirrorSource -> {
@@ -52,14 +63,17 @@ abstract class InstallViewModel(
                 val useRootInstall = prefs.rootInstall.get() && update.link !is Link.Empty
                 when {
                     usePackageInstaller -> {
+                        emitInitialDownloadProgress(update)
                         Log.d("InstallViewModel", "Starting package installer install (link type: ${update.link::class.simpleName})")
                         downloadAndInstall(update)
                     }
                     useRootInstall -> {
+                        emitInitialDownloadProgress(update)
                         Log.d("InstallViewModel", "Starting root install (link type: ${update.link::class.simpleName})")
                         downloadAndRootInstall(update)
                     }
                     else -> {
+                        emitInitialDownloadProgress(update)
                         Log.d("InstallViewModel", "Starting normal install (link type: ${update.link::class.simpleName})")
                         downloadAndInstall(update)
                     }
@@ -70,6 +84,7 @@ abstract class InstallViewModel(
 
     private val activeInstalls = ConcurrentHashMap<Int, AppUpdate>()
     private val blockedInstallIds = ConcurrentHashMap.newKeySet<Int>()
+    private val installProgress = ConcurrentHashMap<Int, AppInstallProgress>()
 
     protected fun registerInstall(update: AppUpdate) {
         activeInstalls[update.id] = update
@@ -78,6 +93,7 @@ abstract class InstallViewModel(
     protected fun clearTrackedInstall(id: Int) {
         activeInstalls.remove(id)
         blockedInstallIds.remove(id)
+        installProgress.remove(id)
     }
 
     protected fun consumeBlockedInstall(id: Int): Boolean = blockedInstallIds.remove(id)
@@ -101,7 +117,19 @@ abstract class InstallViewModel(
     protected fun subscribeToInstallProgress(
         block: (AppInstallProgress) -> Unit
     ) = installLog.progress().onEach {
-        block(it)
+        val existing = installProgress[it.id]
+        val merged = AppInstallProgress(
+            id = it.id,
+            progress = it.progress ?: existing?.progress,
+            total = it.total ?: existing?.total,
+            stage = it.stage ?: existing?.stage
+        )
+        if (merged.stage == InstallStage.Idle) {
+            installProgress.remove(it.id)
+        } else {
+            installProgress[it.id] = merged
+        }
+        block(merged)
     }.launchIn(viewModelScope)
 
     protected suspend fun downloadAndRootInstall(id: Int, packageName: String, link: Link) = runCatching {
@@ -125,12 +153,44 @@ abstract class InstallViewModel(
                     offset = 0L,
                     sessionName = sessionNameFromUrl(link.link)
                 )
-                val extracted = runCatching { extractApksFromArchive(id, downloaded.file) }.getOrDefault(emptyList())
-                if (extracted.isNotEmpty()) {
+                val parsed = XapkInstaller.parseArchiveOrNull(
+                    id = id,
+                    archive = downloaded.file,
+                    packageName = packageName,
+                    downloader = downloader,
+                    installLog = installLog
+                )
+                if (parsed != null && parsed.splits.isNotEmpty()) {
+                    val splits = if (parsed.hasBaseSplit) {
+                        parsed.splits
+                    } else {
+                        installer.attachInstalledBase(packageName, parsed.splits)
+                            ?: run {
+                                Log.e(
+                                    "InstallViewModel",
+                                    "Archive ${downloaded.file.name} missing base split and installed base is incompatible."
+                                )
+                                parsed.splits.forEach { runCatching { it.file.delete() } }
+                                parsed.obbEntries.forEach { runCatching { it.file.delete() } }
+                                snackBar.snackBar(
+                                    viewModelScope,
+                                    TextSnack(stringer.get(R.string.root_install_missing_base_split))
+                                )
+                                installLog.emitStage(id, InstallStage.Idle)
+                                cancelInstall(id)
+                                return@runCatching
+                            }
+                    }
                     try {
-                        performRootInstall(id, packageName, extracted) { downloaded.file.delete() }
+                        performRootInstall(
+                            id = id,
+                            packageName = packageName,
+                            files = splits,
+                            cleanup = { downloaded.file.delete() },
+                            onSuccess = { XapkInstaller.installObb(packageName, parsed.obbEntries) }
+                        )
                     } finally {
-                        extracted.forEach { it.file.delete() }
+                        parsed.obbEntries.forEach { runCatching { it.file.delete() } }
                     }
                 } else {
                     performRootInstall(id, packageName, listOf(downloaded))
@@ -146,13 +206,30 @@ abstract class InstallViewModel(
                     offset = 0L,
                     sessionName = "package.xapk"
                 )
-                val extracted = mutableListOf<RootFile>()
+                val parsed = XapkInstaller.parseArchive(
+                    id = id,
+                    archive = archive.file,
+                    packageName = packageName,
+                    downloader = downloader,
+                    installLog = installLog
+                )
                 try {
-                    extracted += extractApksFromArchive(id, archive.file)
-                    performRootInstall(id, packageName, extracted) { archive.file.delete() }
+                    val splits = if (parsed.hasBaseSplit) {
+                        parsed.splits
+                    } else {
+                        installer.attachInstalledBase(packageName, parsed.splits)
+                            ?: throw IllegalStateException("Missing base split and unable to retrieve compatible installed base")
+                    }
+                    performRootInstall(
+                        id = id,
+                        packageName = packageName,
+                        files = splits,
+                        cleanup = { archive.file.delete() },
+                        onSuccess = { XapkInstaller.installObb(packageName, parsed.obbEntries) }
+                    )
                 } finally {
                     archive.file.delete()
-                    extracted.forEach { it.file.delete() }
+                    parsed.obbEntries.forEach { runCatching { it.file.delete() } }
                 }
             }
             is Link.Play -> {
@@ -191,6 +268,12 @@ abstract class InstallViewModel(
         }
     }.getOrElse {
         Log.e("InstallViewModel", "Error in downloadAndRootInstall.", it)
+        if (it is IllegalStateException) {
+            snackBar.snackBar(
+                viewModelScope,
+                TextSnack(stringer.get(R.string.root_install_missing_base_split))
+            )
+        }
         cancelInstall(id)
     }
 
@@ -235,7 +318,7 @@ abstract class InstallViewModel(
     }
 
     private fun startProgress(id: Int, total: Long?) =
-        installLog.emitProgress(AppInstallProgress(id, 0L, total, InstallStage.Downloading))
+        installLog.emitProgress(AppInstallProgress(id, 0L, total, InstallStage.Pending))
 
     private fun downloadFile(
         id: Int,
@@ -245,29 +328,20 @@ abstract class InstallViewModel(
         sessionName: String? = null
     ): Pair<RootFile, Long> {
         var bytesCopied = 0L
-        val file = downloader.download(url) { bytes ->
+        var knownTotal = total
+        val file = downloader.download(url) { bytes, reportedTotal ->
             bytesCopied = bytes
-            installLog.emitProgress(
-                AppInstallProgress(
-                    id = id,
-                    progress = progressValue(offset + bytes, total),
-                    total = total,
-                    stage = InstallStage.Downloading
-                )
-            )
+            if ((knownTotal == null || knownTotal == 0L) && reportedTotal > 0) {
+                knownTotal = reportedTotal
+            }
+            emitDownloadProgress(id, offset + bytes, knownTotal)
         }
         if (bytesCopied == 0L) {
             val length = file.length()
             if (length > 0) {
                 bytesCopied = length
-                installLog.emitProgress(
-                    AppInstallProgress(
-                        id = id,
-                        progress = progressValue(offset + length, total),
-                        total = total,
-                        stage = InstallStage.Downloading
-                    )
-                )
+                emitDownloadProgress(id, offset + length, knownTotal
+                    ?: length)
             }
         }
         val resolvedName = sessionName?.takeIf { it.isNotBlank() }
@@ -276,60 +350,12 @@ abstract class InstallViewModel(
         return RootFile(file, resolvedName) to bytesCopied
     }
 
-    private fun extractApksFromArchive(id: Int, archive: File): List<RootFile> {
-        val extracted = mutableListOf<Pair<String, RootFile>>()
-        try {
-            ZipFile(archive).use { zip ->
-                val apkEntries = zip.entries().asSequence()
-                    .filter { !it.isDirectory && it.name.endsWith(".apk", ignoreCase = true) }
-                    .toList()
-                if (apkEntries.isEmpty()) return emptyList()
-
-                val total = apkEntries.size.toLong()
-                installLog.emitProgress(
-                    AppInstallProgress(
-                        id = id,
-                        progress = 0L,
-                        total = total,
-                        stage = InstallStage.Installing
-                    )
-                )
-
-                var processed = 0L
-                apkEntries.forEach { entry ->
-                    val tempFile = downloader.createTempFile(".apk")
-                    val entryName = entry.name.substringAfterLast('/').ifBlank { tempFile.name }
-                    zip.getInputStream(entry).use { input ->
-                        tempFile.outputStream().use { output ->
-                            input.copyTo(output)
-                        }
-                    }
-                    processed += 1
-                    installLog.emitProgress(
-                        AppInstallProgress(
-                            id = id,
-                            progress = processed,
-                            total = total,
-                            stage = InstallStage.Installing
-                        )
-                    )
-                    extracted += entryName to RootFile(tempFile, entryName)
-                }
-            }
-        } catch (error: Throwable) {
-            extracted.forEach { runCatching { it.second.file.delete() } }
-            throw error
-        }
-        return extracted
-            .sortedBy { (name, _) -> if (name.contains("base", ignoreCase = true)) 0 else 1 }
-            .map { it.second }
-    }
-
     private suspend fun performRootInstall(
         id: Int,
         packageName: String,
         files: List<RootFile>,
-        cleanup: (() -> Unit)? = null
+        cleanup: (() -> Unit)? = null,
+        onSuccess: (() -> Unit)? = null
     ) {
         if (files.isEmpty()) {
             Log.e("InstallViewModel", "performRootInstall called with no files.")
@@ -341,8 +367,10 @@ abstract class InstallViewModel(
         val syncPrivApp = shouldSyncPrivApp(packageName)
         try {
             installLog.emitStage(id, InstallStage.Installing)
-            val result = installer.rootInstall(files)
+            val result = installer.rootInstall(packageName, files)
             if (result.success) {
+                runCatching { onSuccess?.invoke() }
+                    .onFailure { Log.w("InstallViewModel", "Post-install action failed for $packageName", it) }
                 if (syncPrivApp) {
                     val privResult = installer.installAsPrivApp(packageName, files)
                     if (!privResult.success) {
@@ -374,18 +402,42 @@ abstract class InstallViewModel(
         result: RootInstallResult
     ) {
         val reason = result.humanReadableMessage()
-        trackedInstall(id)?.let { update ->
+        val update = trackedInstall(id)
+        update?.let {
             if (isCertificateFailure(reason)) {
-                blockSourceDueToCertificates(update, reason)
+                blockSourceDueToCertificates(it, reason)
                 markInstallBlocked(id)
             }
         }
+
+        val autoBlock = isAutoBlockFailure(reason)
+        if (autoBlock && update != null) {
+            recordInstallFailure(update)
+            Log.d("InstallViewModel", "Auto-blocked ${update.packageName} from ${update.source.name} after root failure: $reason")
+            clearTrackedInstall(id)
+            installLog.emitProgress(AppInstallProgress(id, 0L, 0L, InstallStage.Idle))
+            cancelInstall(id).join()
+            return
+        }
+
         Log.e("InstallViewModel", "Root install failed for $packageName: $reason")
         snackBar.snackBar(viewModelScope, TextSnack(stringer.get(R.string.root_install_failed_with_reason, reason)))
         maybePromptInstallModeChange(packageName)
         installLog.emitStage(id, InstallStage.Idle)
         cancelInstall(id).join()
     }
+
+    private fun recordInstallFailure(update: AppUpdate) {
+        val key = update.blockKey()
+        val blocked = prefs.blockedInstallFailures.get().toMutableSet()
+        if (blocked.add(key)) {
+            prefs.blockedInstallFailures.put(blocked.toList())
+        }
+    }
+
+    private fun isAutoBlockFailure(reason: String): Boolean =
+        reason.contains("INSTALL_FAILED_INVALID_APK", ignoreCase = true) ||
+            reason.contains("INSTALL_FAILED_DUPLICATE_PERMISSION", ignoreCase = true)
 
     private fun shouldSyncPrivApp(packageName: String): Boolean =
         prefs.privAppInstall.get() && installer.isPrivApp(packageName)
@@ -411,7 +463,50 @@ abstract class InstallViewModel(
         }
     }
 
-    private fun progressValue(progress: Long, total: Long?) = if (total != null) min(progress, total) else progress
+    private fun emitDownloadProgress(id: Int, progress: Long, total: Long?) {
+        val cappedTotal = total?.takeIf { it > 0 }
+        val cappedProgress = if (cappedTotal != null) min(progress, cappedTotal) else progress
+        val stage = if (cappedProgress > 0L) InstallStage.Downloading else InstallStage.Pending
+        val state = AppInstallProgress(
+            id = id,
+            progress = cappedProgress,
+            total = cappedTotal,
+            stage = stage
+        )
+        installProgress[id] = state
+        installLog.emitProgress(state)
+    }
+
+    protected fun emitInitialDownloadProgress(update: AppUpdate) {
+        val total = (update.link as? Link.Url)?.size?.takeIf { it > 0L }
+        val state = AppInstallProgress(
+            id = update.id,
+            progress = 0L,
+            total = total,
+            stage = InstallStage.Pending
+        )
+        installProgress[update.id] = state
+        installLog.emitProgress(state)
+    }
+
+    protected fun List<AppUpdate>.applyActiveInstallState(): List<AppUpdate> =
+        map { update ->
+            val progress = installProgress[update.id]
+            when {
+                progress != null -> {
+                    val stage = progress.stage ?: InstallStage.Pending
+                    update.copy(
+                        installStage = stage,
+                        progress = progress.progress ?: update.progress,
+                        total = progress.total ?: update.total
+                    )
+                }
+                activeInstalls.containsKey(update.id) && update.installStage == InstallStage.Idle -> {
+                    update.copy(installStage = InstallStage.Pending)
+                }
+                else -> update
+            }
+        }
 
     private fun sessionNameFromUrl(url: String): String? {
         val candidate = url.substringAfterLast('/').substringBefore('?').substringBefore('#')

@@ -15,7 +15,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -51,6 +50,7 @@ import com.apkupdater.prefs.Prefs
 import com.apkupdater.ui.component.DefaultErrorScreen
 import com.apkupdater.ui.component.InstalledGrid
 import com.apkupdater.ui.component.LoadingGrid
+import com.apkupdater.ui.component.RefreshIndicatorBar
 import com.apkupdater.ui.component.SearchItem
 import com.apkupdater.ui.component.TvInstalledGrid
 import com.apkupdater.ui.component.TvSearchItem
@@ -67,13 +67,7 @@ fun SearchScreen(
 	isRefreshing: Boolean = false
 ) = Column {
 	SearchTopBar(viewModel)
-	if (isRefreshing) {
-		LinearProgressIndicator(
-			modifier = Modifier.fillMaxWidth(),
-			color = MaterialTheme.colorScheme.primary,
-			trackColor = MaterialTheme.colorScheme.surfaceVariant
-		)
-	}
+	RefreshIndicatorBar(visible = isRefreshing, modifier = Modifier.padding(vertical = 6.dp))
 	viewModel.state().collectAsStateWithLifecycle().value.onError {
 		DefaultErrorScreen()
 	}.onSuccess {

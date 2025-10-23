@@ -67,9 +67,11 @@ fun AppUpdate.progressFraction(): Float? = when (installStage) {
         InstallStage.Downloading -> total
                 .takeIf { it > 0L }
                 ?.let { (progress.toFloat() / it.toFloat()).coerceIn(0f, 1f) }
-        InstallStage.Installing -> 1f
+        InstallStage.Installing -> null
         else -> null
 }
+
+fun AppUpdate.blockKey(): String = "${source.name}|$packageName|$versionCode"
 
 enum class AppPackaging {
         Apk,

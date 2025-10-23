@@ -40,7 +40,8 @@ class UpdatesViewModel(
         init {
                 subscribeToInstallStatus(state.value.updates())
                 subscribeToInstallProgress { progress ->
-                        state.value = UpdatesUiState.Success(state.value.mutableUpdates().setProgress(progress))
+                        val updated = state.value.mutableUpdates().setProgress(progress)
+                        state.value = UpdatesUiState.Success(updated.applyActiveInstallState())
                 }
         }
 
@@ -68,7 +69,7 @@ class UpdatesViewModel(
             clearTrackedInstall(id)
             setSuccess(updates.removeId(id))
         } else {
-            state.value = UpdatesUiState.Success(updates.setInstallStage(id, InstallStage.Idle))
+            state.value = UpdatesUiState.Success(updates.setInstallStage(id, InstallStage.Idle).applyActiveInstallState())
             clearTrackedInstall(id)
         }
         installer.finish()
@@ -82,14 +83,18 @@ class UpdatesViewModel(
 
     override fun downloadAndRootInstall(update: AppUpdate) = viewModelScope.launch(Dispatchers.IO) {
         registerInstall(update)
-        state.value = UpdatesUiState.Success(state.value.mutableUpdates().setInstallStage(update.id, InstallStage.Pending))
+        val updated = state.value.mutableUpdates().setInstallStage(update.id, InstallStage.Pending)
+        state.value = UpdatesUiState.Success(updated.applyActiveInstallState())
+        emitInitialDownloadProgress(update)
         downloadAndRootInstall(update.id, update.packageName, update.link)
     }
 
     override fun downloadAndInstall(update: AppUpdate) = viewModelScope.launch(Dispatchers.IO) {
         if(installer.checkPermission()) {
             registerInstall(update)
-            state.value = UpdatesUiState.Success(state.value.mutableUpdates().setInstallStage(update.id, InstallStage.Pending))
+            val updated = state.value.mutableUpdates().setInstallStage(update.id, InstallStage.Pending)
+            state.value = UpdatesUiState.Success(updated.applyActiveInstallState())
+            emitInitialDownloadProgress(update)
             downloadAndInstall(update.id, update.packageName, update.link)
         }
     }
@@ -100,7 +105,7 @@ class UpdatesViewModel(
 	private fun setSuccess(updates: List<AppUpdate>) = updates
 		.filterIgnoredVersions(prefs.ignoredVersions.get())
 		.let {
-			state.value = UpdatesUiState.Success(it)
+	state.value = UpdatesUiState.Success(it.applyActiveInstallState())
 			badger.changeUpdatesBadge(it.size.toString())
 		}
 

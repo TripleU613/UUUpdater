@@ -14,7 +14,7 @@ class Downloader(
     private val dir: File
 ) {
 
-    fun download(url: String, onProgress: ((Long) -> Unit)? = null): File {
+    fun download(url: String, onProgress: ((Long, Long) -> Unit)? = null): File {
         val file = File(dir, randomUUID())
         return runCatching {
             val response = clientFor(url).newCall(downloadRequest(url)).execute()
@@ -23,6 +23,7 @@ class Downloader(
                     throw IllegalStateException("Download failed with code ${response.code}")
                 }
                 val body = response.body ?: throw IllegalStateException("Empty response body")
+                val totalBytes = body.contentLength()
                 body.byteStream().use { input ->
                     file.outputStream().use { output ->
                         val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
@@ -32,7 +33,7 @@ class Downloader(
                             if (read == -1) break
                             output.write(buffer, 0, read)
                             bytesCopied += read
-                            onProgress?.invoke(bytesCopied)
+                            onProgress?.invoke(bytesCopied, totalBytes)
                         }
                         output.flush()
                     }

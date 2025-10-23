@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
@@ -13,7 +14,6 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -40,6 +40,7 @@ import com.apkupdater.ui.component.ExcludeSystemIcon
 import com.apkupdater.ui.component.InstalledGrid
 import com.apkupdater.ui.component.InstalledItem
 import com.apkupdater.ui.component.LoadingGrid
+import com.apkupdater.ui.component.RefreshIndicatorBar
 import com.apkupdater.ui.component.TvInstalledGrid
 import com.apkupdater.ui.component.TvInstalledItem
 import com.apkupdater.ui.theme.statusBarColor
@@ -65,13 +66,7 @@ fun AppsScreen(
 @Composable
 fun AppsScreenSuccess(viewModel: AppsViewModel, state: AppsUiState.Success, isRefreshing: Boolean) = Column {
 	AppsTopBar(viewModel, state.excludeSystem, state.excludeAppStore, state.excludeDisabled)
-	if (isRefreshing) {
-		LinearProgressIndicator(
-			modifier = Modifier.fillMaxWidth(),
-			color = MaterialTheme.colorScheme.primary,
-			trackColor = MaterialTheme.colorScheme.surfaceVariant
-		)
-	}
+	RefreshIndicatorBar(visible = isRefreshing, modifier = Modifier.padding(vertical = 6.dp))
 	@Suppress("DEPRECATION")
 	if (get<Prefs>().androidTvUi.get()) {
 		TvInstalledGrid {
@@ -91,13 +86,7 @@ fun AppsScreenSuccess(viewModel: AppsViewModel, state: AppsUiState.Success, isRe
 @Composable
 fun AppsScreenLoading(viewModel: AppsViewModel, state: AppsUiState.Loading, isRefreshing: Boolean) = Column {
 	AppsTopBar(viewModel, state.excludeSystem, state.excludeAppStore, state.excludeDisabled)
-	if (isRefreshing) {
-		LinearProgressIndicator(
-			modifier = Modifier.fillMaxWidth(),
-			color = MaterialTheme.colorScheme.primary,
-			trackColor = MaterialTheme.colorScheme.surfaceVariant
-		)
-	}
+	RefreshIndicatorBar(visible = isRefreshing, modifier = Modifier.padding(vertical = 6.dp))
 	LoadingGrid()
 }
 
@@ -126,12 +115,6 @@ fun AppsTopBar(
 
 @Composable
 fun AppsScreenError(isRefreshing: Boolean) = Column {
-	if (isRefreshing) {
-		LinearProgressIndicator(
-			modifier = Modifier.fillMaxWidth(),
-			color = MaterialTheme.colorScheme.primary,
-			trackColor = MaterialTheme.colorScheme.surfaceVariant
-		)
-	}
+	RefreshIndicatorBar(visible = isRefreshing, modifier = Modifier.padding(vertical = 6.dp))
 	DefaultErrorScreen()
 }

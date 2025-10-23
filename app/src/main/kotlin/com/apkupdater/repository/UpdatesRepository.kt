@@ -2,6 +2,7 @@ package com.apkupdater.repository
 
 import android.util.Log
 import com.apkupdater.data.ui.AppUpdate
+import com.apkupdater.data.ui.blockKey
 import com.apkupdater.prefs.Prefs
 import com.apkupdater.util.combine
 import kotlinx.coroutines.flow.Flow
@@ -40,10 +41,14 @@ class UpdatesRepository(
                 if (sources.isNotEmpty()) {
                     sources
                         .combine { updates ->
-                            val blocked = prefs.blockedCertificateSources.get().toHashSet()
+                            val blockedCertificates = prefs.blockedCertificateSources.get().toHashSet()
+                            val blockedInstallFailures = prefs.blockedInstallFailures.get().toHashSet()
                             val flattened = updates
                                 .flatMap { it }
-                                .filterNot { blocked.contains(it.blockKey()) }
+                                .filterNot {
+                                    val key = it.blockKey()
+                                    blockedCertificates.contains(key) || blockedInstallFailures.contains(key)
+                                }
                             emit(flattened)
                         }
                         .collect()
@@ -59,5 +64,3 @@ class UpdatesRepository(
     }
 
 }
-
-private fun AppUpdate.blockKey() = "${source.name}|$packageName"

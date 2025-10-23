@@ -30,6 +30,6 @@ fun AppUpdateResponse.toAppUpdate(
     app?.versionCode ?: 0L,
     ApkPureSource,
     if (app == null) Uri.parse(icon.thumbnail.url) else Uri.EMPTY,
-    if (asset.url.contains("/XAPK")) Link.Xapk(asset.url.replace("http://", "https://")) else Link.Url(asset.url.replace("http://", "https://")),
+    if (asset.url.contains("/XAPK")) Link.Xapk(asset.url.replace("http://", "https://")) else Link.Url(asset.url.replace("http://", "https://"), asset.size),
     if (app == null) description_short else whatsnew
 )

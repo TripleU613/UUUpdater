@@ -28,6 +28,8 @@
     <string name="root_install_not_supported">Root install of this app is not supported.</string>
     <string name="root_install_failed_with_reason">Root install failed (%1$s).</string>
     <string name="priv_app_install_failed_with_reason">Priv-app sync failed (%1$s).</string>
+    <string name="root_install_missing_base_split">Bundle is missing a base APK. Try downloading from a different source or use the package installer.</string>
+    <string name="root_install_blocked_for_version">Cannot install %1$s from %2$s via root. Try the package installer or another source.</string>
     <string name="root_install_prompt_title">Install Mode</string>
     <string name="root_install_prompt_message">Root access is unavailable. Change install mode for %1$s?</string>
     <string name="root_install_prompt_yes">Yes</string>

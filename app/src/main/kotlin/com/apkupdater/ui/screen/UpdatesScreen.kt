@@ -32,7 +32,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
@@ -74,6 +73,7 @@ import com.apkupdater.data.ui.AppUpdate
 import com.apkupdater.prefs.Prefs
 import com.apkupdater.ui.component.DefaultErrorScreen
 import com.apkupdater.ui.component.LoadingGrid
+import com.apkupdater.ui.component.RefreshIndicatorBar
 import com.apkupdater.ui.component.SwitchSetting
 import com.apkupdater.ui.component.TvInstalledGrid
 import com.apkupdater.ui.component.TvUpdateItem
@@ -144,34 +144,34 @@ fun UpdatesScreen(
 			)
 		}
 
-		state.onLoading {
-			UpdatesScreenLoading(
-				viewModel = viewModel,
-				navController = navController,
-				isRefreshing = isRefreshing,
-				searchQuery = searchQuery,
-				onSearchQueryChange = { searchQuery = it },
-				onOpenDrawer = openDrawer
-			)
-		}.onError {
-			UpdatesScreenError(
-				isRefreshing = isRefreshing,
-				searchQuery = searchQuery,
-				onSearchQueryChange = { searchQuery = it },
-				onOpenDrawer = openDrawer
-			)
-		}.onSuccess {
-			UpdatesScreenSuccess(
-				viewModel = viewModel,
-				navController = navController,
-				updates = it.updates,
-				isRefreshing = isRefreshing,
-				searchQuery = searchQuery,
-				onSearchQueryChange = { searchQuery = it },
-				onOpenDrawer = openDrawer
-			)
-		}
+	state.onLoading {
+		UpdatesScreenLoading(
+			viewModel = viewModel,
+			navController = navController,
+			searchQuery = searchQuery,
+			isRefreshing = isRefreshing,
+			onSearchQueryChange = { searchQuery = it },
+			onOpenDrawer = openDrawer
+		)
+	}.onError {
+		UpdatesScreenError(
+			searchQuery = searchQuery,
+			isRefreshing = isRefreshing,
+			onSearchQueryChange = { searchQuery = it },
+			onOpenDrawer = openDrawer
+		)
+	}.onSuccess {
+		UpdatesScreenSuccess(
+			viewModel = viewModel,
+			navController = navController,
+			updates = it.updates,
+			isRefreshing = isRefreshing,
+			searchQuery = searchQuery,
+			onSearchQueryChange = { searchQuery = it },
+			onOpenDrawer = openDrawer
+		)
 	}
+}
 }
 
 @Composable
@@ -500,45 +500,25 @@ fun UpdatesTopBar(
 fun UpdatesScreenLoading(
 	@Suppress("UNUSED_PARAMETER") viewModel: UpdatesViewModel,
 	@Suppress("UNUSED_PARAMETER") navController: NavController,
-	isRefreshing: Boolean,
 	searchQuery: String,
+	isRefreshing: Boolean,
 	onSearchQueryChange: (String) -> Unit,
 	onOpenDrawer: () -> Unit
 ) = Column {
 	UpdatesTopBar(searchQuery, onSearchQueryChange, onOpenDrawer)
-	AnimatedVisibility(
-		visible = isRefreshing,
-		enter = fadeIn(),
-		exit = fadeOut()
-	) {
-		LinearProgressIndicator(
-			modifier = Modifier.fillMaxWidth(),
-			color = MaterialTheme.colorScheme.primary,
-			trackColor = MaterialTheme.colorScheme.surfaceVariant
-		)
-	}
+	RefreshIndicatorBar(visible = isRefreshing, modifier = Modifier.padding(vertical = 6.dp))
 	LoadingGrid()
 }
 
 @Composable
 fun UpdatesScreenError(
-	isRefreshing: Boolean,
 	searchQuery: String,
+	isRefreshing: Boolean,
 	onSearchQueryChange: (String) -> Unit,
 	onOpenDrawer: () -> Unit
 ) = Column {
 	UpdatesTopBar(searchQuery, onSearchQueryChange, onOpenDrawer)
-	AnimatedVisibility(
-		visible = isRefreshing,
-		enter = fadeIn(),
-		exit = fadeOut()
-	) {
-		LinearProgressIndicator(
-			modifier = Modifier.fillMaxWidth(),
-			color = MaterialTheme.colorScheme.primary,
-			trackColor = MaterialTheme.colorScheme.surfaceVariant
-		)
-	}
+	RefreshIndicatorBar(visible = isRefreshing, modifier = Modifier.padding(vertical = 6.dp))
 	DefaultErrorScreen()
 }
 
@@ -571,17 +551,7 @@ fun UpdatesScreenSuccess(
 			viewModel.install(update, handler)
 		}
 	}
-	AnimatedVisibility(
-		visible = isRefreshing,
-		enter = fadeIn(),
-		exit = fadeOut()
-	) {
-		LinearProgressIndicator(
-			modifier = Modifier.fillMaxWidth(),
-			color = MaterialTheme.colorScheme.primary,
-			trackColor = MaterialTheme.colorScheme.surfaceVariant
-		)
-	}
+	RefreshIndicatorBar(visible = isRefreshing, modifier = Modifier.padding(vertical = 6.dp))
 
 	when {
 		filteredUpdates.isEmpty() -> EmptyUpdatesState()

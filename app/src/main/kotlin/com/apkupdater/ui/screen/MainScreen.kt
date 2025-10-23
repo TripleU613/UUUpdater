@@ -21,16 +21,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.pullrefresh.PullRefreshIndicator
-import androidx.compose.material3.pullrefresh.pullRefresh
-import androidx.compose.material3.pullrefresh.rememberPullRefreshState
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -72,6 +71,7 @@ import kotlin.coroutines.CoroutineContext
 
 
 @Composable
+@OptIn(ExperimentalMaterialApi::class)
 fun MainScreen(mainViewModel: MainViewModel = koinViewModel()) {
 	// ViewModels
 	val appsViewModel: AppsViewModel = koinViewModel()
@@ -82,14 +82,15 @@ fun MainScreen(mainViewModel: MainViewModel = koinViewModel()) {
 	// Navigation
 	val navController = rememberNavController()
 
-	// Pull to refresh
-	val isRefreshing = mainViewModel.isRefreshing.collectAsStateWithLifecycle()
-	val pullToRefresh = rememberPullRefreshState(isRefreshing.value, {
-		mainViewModel.refresh(appsViewModel, updatesViewModel)
-	})
-	LaunchedEffect(pullToRefresh) {
-		mainViewModel.refresh(appsViewModel, updatesViewModel)
-	}
+    val isRefreshing = mainViewModel.isRefreshing.collectAsStateWithLifecycle()
+    val pullRefreshState = rememberPullRefreshState(
+        refreshing = isRefreshing.value,
+        onRefresh = { mainViewModel.refresh(appsViewModel, updatesViewModel) }
+    )
+    LaunchedEffect(Unit) {
+        mainViewModel.refresh(appsViewModel, updatesViewModel)
+    }
+    val refreshIndicatorVisible = isRefreshing.value || pullRefreshState.progress > 0f
 
 	// Used to launch the install intent and get dismissal result
 	@Suppress("DEPRECATION")
@@ -117,28 +118,23 @@ fun MainScreen(mainViewModel: MainViewModel = koinViewModel()) {
 		Scaffold(
 			snackbarHost = { SnackbarHost(snackBarHostState) }
 		) { padding ->
-			Box(
-				modifier = Modifier
-					.fillMaxSize()
-					.pullRefresh(pullToRefresh)
-					.padding(padding)
-			) {
-				NavHost(navController, PaddingValues(0.dp), mainViewModel, appsViewModel, updatesViewModel, searchViewModel, settingsViewModel, isRefreshing.value)
-				val indicatorVisible = isRefreshing.value || pullToRefresh.progress > 0f
-				AnimatedVisibility(
-					visible = indicatorVisible,
-					modifier = Modifier
-						.align(Alignment.TopCenter)
-						.padding(top = 12.dp),
-					enter = fadeIn(),
-					exit = fadeOut()
-				) {
-					PullRefreshIndicator(
-						refreshing = isRefreshing.value,
-						state = pullToRefresh
-					)
-				}
-			}
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pullRefresh(pullRefreshState)
+                    .padding(padding)
+            ) {
+                NavHost(
+                    navController,
+                    PaddingValues(0.dp),
+                    mainViewModel,
+                    appsViewModel,
+                    updatesViewModel,
+                    searchViewModel,
+                    settingsViewModel,
+                    refreshIndicatorVisible
+                )
+            }
 		}
 	}
 }

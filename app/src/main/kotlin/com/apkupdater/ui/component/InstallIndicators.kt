@@ -5,7 +5,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -22,14 +22,13 @@ import com.apkupdater.data.ui.progressFraction
 fun BoxScope.AppInstallProgressRing(
     appUpdate: AppUpdate,
     modifier: Modifier = Modifier,
-    strokeWidth: Dp = 4.dp
+    strokeWidth: Dp = 3.dp
 ) {
     if (appUpdate.installStage == InstallStage.Idle) return
 
     val indicatorModifier = modifier
         .align(Alignment.Center)
-        .fillMaxSize()
-        .padding(6.dp)
+        .fillMaxSize(1.15f)
 
     val color = MaterialTheme.colorScheme.primary
     val track = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)

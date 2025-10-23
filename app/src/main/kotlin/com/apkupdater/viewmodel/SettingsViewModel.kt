@@ -33,6 +33,12 @@ class SettingsViewModel(
 
 	val state = MutableStateFlow<SettingsUiState>(SettingsUiState.Settings)
 
+	init {
+		viewModelScope.launch(Dispatchers.IO) {
+			sanitizeInstallPreferences()
+		}
+	}
+
 	fun setPortraitColumns(n: Int) = prefs.portraitColumns.put(n)
 	fun getPortraitColumns() = prefs.portraitColumns.get()
 	fun setLandscapeColumns(n: Int) = prefs.landscapeColumns.put(n)
@@ -79,22 +85,31 @@ class SettingsViewModel(
 		themer.setTheme(isDarkTheme(theme))
 	}
 
-	fun setRootInstall(b: Boolean) {
-		if (b) {
-			// Request root access by trying to get a root shell
-			val hasRoot = try {
-				Shell.getShell().isRoot
-			} catch (e: Exception) {
-				false
+	fun setRootInstall(enabled: Boolean) {
+		if (enabled) {
+			val granted = attemptEnableRootInstall()
+			if (!granted) {
+				prefs.rootInstall.put(false)
+				ensurePackageInstallerEnabled()
 			}
-			prefs.rootInstall.put(hasRoot)
 		} else {
 			prefs.rootInstall.put(false)
+			ensurePackageInstallerEnabled()
 		}
 	}
 
-	fun setPackageInstallerInstall(b: Boolean) {
-		prefs.packageInstallerInstall.put(b)
+	fun setPackageInstallerInstall(enabled: Boolean) {
+		if (enabled) {
+			prefs.packageInstallerInstall.put(true)
+			if (prefs.rootInstall.get()) {
+				prefs.rootInstall.put(false)
+			}
+		} else {
+			prefs.packageInstallerInstall.put(false)
+			if (!attemptEnableRootInstall()) {
+				ensurePackageInstallerEnabled()
+			}
+		}
 	}
 
 	fun setPrivAppInstall(b: Boolean) {
@@ -145,6 +160,45 @@ class SettingsViewModel(
 		val process = Runtime.getRuntime().exec("logcat -d")
 		val data = process.inputStream.readBytes()
 		clipboard.copy(data.decodeToString(), "App Logs")
+	}
+
+	private fun sanitizeInstallPreferences() {
+		val rootEnabled = prefs.rootInstall.get()
+		val packageEnabled = prefs.packageInstallerInstall.get()
+		when {
+			rootEnabled && packageEnabled -> {
+				// Prefer root installs by default.
+				prefs.packageInstallerInstall.put(false)
+			}
+			!rootEnabled && !packageEnabled -> {
+				if (!attemptEnableRootInstall()) {
+					prefs.packageInstallerInstall.put(true)
+				}
+			}
+		}
+	}
+
+	private fun attemptEnableRootInstall(): Boolean {
+		val hasRoot = hasRootAccess()
+		if (hasRoot) {
+			prefs.rootInstall.put(true)
+			if (prefs.packageInstallerInstall.get()) {
+				prefs.packageInstallerInstall.put(false)
+			}
+		}
+		return hasRoot
+	}
+
+	private fun ensurePackageInstallerEnabled() {
+		if (!prefs.packageInstallerInstall.get()) {
+			prefs.packageInstallerInstall.put(true)
+		}
+	}
+
+	private fun hasRootAccess(): Boolean = try {
+		Shell.getShell().isRoot
+	} catch (_: Exception) {
+		false
 	}
 
 }
