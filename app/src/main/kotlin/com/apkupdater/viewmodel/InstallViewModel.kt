@@ -437,7 +437,10 @@ abstract class InstallViewModel(
 
     private fun isAutoBlockFailure(reason: String): Boolean =
         reason.contains("INSTALL_FAILED_INVALID_APK", ignoreCase = true) ||
-            reason.contains("INSTALL_FAILED_DUPLICATE_PERMISSION", ignoreCase = true)
+            reason.contains("INSTALL_FAILED_DUPLICATE_PERMISSION", ignoreCase = true) ||
+            reason.contains("INSTALL_PARSE_FAILED", ignoreCase = true) ||
+            reason.contains("FAILED COLLECTING CERTIFICATES", ignoreCase = true) ||
+            reason.contains("FAILED TO COLLECT CERTIFICATES", ignoreCase = true)
 
     private fun shouldSyncPrivApp(packageName: String): Boolean =
         prefs.privAppInstall.get() && installer.isPrivApp(packageName)

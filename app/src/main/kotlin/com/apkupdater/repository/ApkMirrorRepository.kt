@@ -8,7 +8,8 @@ import com.apkupdater.BuildConfig
 import com.apkupdater.data.apkmirror.AppExistsRequest
 import com.apkupdater.data.apkmirror.AppExistsResponseApk
 import com.apkupdater.data.apkmirror.AppExistsResponseData
-import com.apkupdater.data.apkmirror.toAppUpdate
+import com.apkupdater.data.apkmirror.AppExistsResponseRelease
+import com.apkupdater.data.apkmirror.isBundleVariant
 import com.apkupdater.data.ui.ApkMirrorSource
 import com.apkupdater.data.ui.AppInstalled
 import com.apkupdater.data.ui.AppPackaging
@@ -150,7 +151,12 @@ class ApkMirrorRepository(
                 val selected = handsetCandidates.maxByOrNull { it.versionCode }
 
                 if (selected != null && selected.versionCode > installed.versionCode) {
-                    results += selected.toAppUpdate(installed, data.release)
+                    val resolved = buildApiUpdate(selected, installed, data.release)
+                    if (resolved != null) {
+                        results += resolved
+                    } else {
+                        fallbackTargets += installed to data
+                    }
                 } else {
                     fallbackTargets += installed to data
                 }
@@ -217,6 +223,10 @@ class ApkMirrorRepository(
             .maxByOrNull { it.versionCode }
             ?: return null
 
+        val downloadUrl = resolveDownloadUrl(matching.link) ?: return null
+        val packaging = if (matching.isBundle || downloadUrl.endsWith(".apkm", ignoreCase = true)) AppPackaging.Bundle else AppPackaging.Apk
+        val link = if (packaging == AppPackaging.Bundle) Link.Xapk(downloadUrl) else Link.Url(downloadUrl)
+
         return AppUpdate(
             name = app.name,
             packageName = app.packageName,
@@ -226,10 +236,60 @@ class ApkMirrorRepository(
             oldVersionCode = app.versionCode,
             source = ApkMirrorSource,
             iconUri = app.iconUri,
-            link = Link.Url(matching.link),
+            link = link,
             whatsNew = data.release.whatsNew.orEmpty(),
-            packaging = if (matching.isBundle) AppPackaging.Bundle else AppPackaging.Apk
+            packaging = packaging
         )
+    }
+
+    private suspend fun buildApiUpdate(
+        apk: AppExistsResponseApk,
+        app: AppInstalled,
+        release: AppExistsResponseRelease
+    ): AppUpdate? {
+        val downloadUrl = resolveDownloadUrl(apk.link) ?: return null
+        val packaging = if (apk.isBundleVariant() || downloadUrl.endsWith(".apkm", ignoreCase = true)) AppPackaging.Bundle else AppPackaging.Apk
+        val link = if (packaging == AppPackaging.Bundle) Link.Xapk(downloadUrl) else Link.Url(downloadUrl)
+
+        return AppUpdate(
+            name = app.name,
+            packageName = app.packageName,
+            version = release.version,
+            oldVersion = app.version,
+            versionCode = apk.versionCode,
+            oldVersionCode = app.versionCode,
+            source = ApkMirrorSource,
+            iconUri = app.iconUri,
+            link = link,
+            whatsNew = release.whatsNew.orEmpty(),
+            packaging = packaging
+        )
+    }
+
+    private suspend fun resolveDownloadUrl(rawUrl: String): String? {
+        var url = if (rawUrl.startsWith("http")) rawUrl else "$BASE_URL$rawUrl"
+        repeat(3) {
+            if (url.contains("download.php", ignoreCase = true) || url.endsWith(".apk", true) || url.endsWith(".apkm", true)) {
+                return url
+            }
+            val document = withContext(Dispatchers.IO) {
+                runCatching {
+                    Jsoup.connect(url)
+                        .userAgent(userAgent)
+                        .timeout(SCRAPE_TIMEOUT_MS)
+                        .get()
+                }.onFailure { Log.w(TAG, "Failed to load APKMirror download page $url", it) }
+                    .getOrNull()
+            } ?: return null
+
+            val anchor = document.selectFirst("a.downloadButton") ?: document.selectFirst("a[href*=download.php]")
+            val next = anchor?.attr("abs:href")
+            if (next.isNullOrBlank()) {
+                return null
+            }
+            url = next
+        }
+        return if (url.contains("download.php", ignoreCase = true) || url.endsWith(".apk", true) || url.endsWith(".apkm", true)) url else null
     }
 
     private suspend fun scrapeVariants(url: String): List<ApkMirrorScrapedVariant> = withContext(Dispatchers.IO) {

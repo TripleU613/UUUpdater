@@ -1,10 +1,5 @@
 package com.apkupdater.data.apkmirror
 
-import com.apkupdater.data.ui.ApkMirrorSource
-import com.apkupdater.data.ui.AppInstalled
-import com.apkupdater.data.ui.AppPackaging
-import com.apkupdater.data.ui.AppUpdate
-import com.apkupdater.data.ui.Link
 import com.google.gson.annotations.SerializedName
 
 data class AppExistsResponseApk(
@@ -22,22 +17,8 @@ data class AppExistsResponseApk(
 	val signaturesSha256: List<String>? = emptyList()
 )
 
-fun AppExistsResponseApk.toAppUpdate(app: AppInstalled, release: AppExistsResponseRelease) = AppUpdate(
-	app.name,
-	app.packageName,
-	release.version,
-	app.version,
-	versionCode,
-	app.versionCode,
-	ApkMirrorSource,
-	app.iconUri,
-	Link.Url("https://www.apkmirror.com$link"),
-	release.whatsNew.orEmpty(),
-	packaging = if (isBundleVariant()) AppPackaging.Bundle else AppPackaging.Apk
-)
-
-private fun AppExistsResponseApk.isBundleVariant(): Boolean {
-	val descriptionLower = description?.lowercase().orEmpty()
-	if ("bundle" in descriptionLower || "apkm" in descriptionLower) return true
-	return link.contains("bundle", ignoreCase = true)
+fun AppExistsResponseApk.isBundleVariant(): Boolean {
+    val descriptionLower = description?.lowercase().orEmpty()
+    if ("bundle" in descriptionLower || "apkm" in descriptionLower) return true
+    return link.contains("bundle", ignoreCase = true)
 }
