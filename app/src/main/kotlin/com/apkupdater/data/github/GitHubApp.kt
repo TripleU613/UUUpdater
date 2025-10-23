@@ -387,6 +387,6 @@ val GitHubApps = listOf(
     GitHubApp("us.materialio.app", "Materialious", "Materialious")
 )
 
-fun contains(text: String) = Regex("^.*$text.*\$")
+fun contains(text: String) = Regex(".*${Regex.escape(text)}.*")
 
-fun notContains(text: String) = Regex("^((?!$text).)*\$")
+fun notContains(text: String) = Regex("^(?!.*${Regex.escape(text)}).*$")
