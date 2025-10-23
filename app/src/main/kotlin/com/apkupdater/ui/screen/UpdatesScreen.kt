@@ -546,13 +546,15 @@ fun UpdatesScreenSuccess(
 		}.sortedBy { it.name.lowercase() }
 	}
 
-	UpdatesTopBar(searchQuery, onSearchQueryChange, onOpenDrawer) {
-		filteredUpdates.forEach { update ->
-			viewModel.install(update, handler)
-		}
-	}
+    UpdatesTopBar(searchQuery, onSearchQueryChange, onOpenDrawer) {
+        filteredUpdates.forEach { update ->
+            viewModel.install(update, handler)
+        }
+    }
+    RefreshIndicatorBar(visible = isRefreshing, modifier = Modifier.padding(vertical = 6.dp))
+
     when {
-        filteredUpdates.isEmpty() -> EmptyUpdatesState(isRefreshing)
+        filteredUpdates.isEmpty() -> EmptyUpdatesState()
         tv -> TvGrid(viewModel, filteredUpdates, handler)
         !tv -> ListLayout(viewModel, filteredUpdates, handler)
     }
@@ -590,39 +592,34 @@ fun ListLayout(
 }
 
 @Composable
-private fun EmptyUpdatesState(isRefreshing: Boolean) {
-    Box(modifier = Modifier.fillMaxSize()) {
-        RefreshIndicatorBar(visible = isRefreshing, modifier = Modifier
-            .align(Alignment.TopCenter)
-            .padding(vertical = 6.dp))
-
-        Column(
-            modifier = Modifier
-                .align(Alignment.Center)
-                .padding(horizontal = 32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(
-                imageVector = ImageVector.vectorResource(id = R.drawable.ic_update),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(72.dp)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = stringResource(R.string.all_up_to_date_title),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = stringResource(R.string.all_up_to_date_subtitle),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
-        }
+private fun EmptyUpdatesState() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 32.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            imageVector = ImageVector.vectorResource(id = R.drawable.ic_update),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(72.dp)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = stringResource(R.string.all_up_to_date_title),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = stringResource(R.string.all_up_to_date_subtitle),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
     }
 }
 

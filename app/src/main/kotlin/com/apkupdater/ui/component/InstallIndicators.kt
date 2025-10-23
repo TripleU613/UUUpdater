@@ -50,7 +50,7 @@ fun BoxScope.AppInstallProgressRing(
                     label = "app_install_progress_ring"
                 )
                 CircularProgressIndicator(
-                    progress = animatedProgress,
+                    progress = { animatedProgress },
                     modifier = indicatorModifier,
                     color = color,
                     trackColor = track,

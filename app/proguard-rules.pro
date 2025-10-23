@@ -17,3 +17,8 @@
 
 # Models
 -keep class com.apkupdater.data.** { *; }
+
+-keep class com.apkupdater.repository.CustomFeedRepository { *; }
+-keep class com.google.gson.JsonObject { *; }
+-keep class com.google.gson.JsonParser { *; }
+

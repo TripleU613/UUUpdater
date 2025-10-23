@@ -13,6 +13,31 @@ android {
     namespace = "com.apkupdater"
     compileSdk = 35
 
+    flavorDimensions += "distribution"
+    productFlavors {
+        create("standard") {
+            dimension = "distribution"
+            buildConfigField("String", "CUSTOM_FEED_URL", "\"\"")
+            buildConfigField("String", "CUSTOM_FEED_TOKEN", "\"\"")
+            buildConfigField("String", "CUSTOM_FEED_NAME", "\"\"")
+            buildConfigField("String", "CUSTOM_FEED_REPO", "\"\"")
+            buildConfigField("String", "CUSTOM_FEED_PATH", "\"\"")
+        }
+        create("techeaz") {
+            dimension = "distribution"
+            resValue("string", "app_name", "APKUpdater Techeaz")
+            buildConfigField("String", "CUSTOM_FEED_URL", "\"\"")
+            buildConfigField(
+                "String",
+                "CUSTOM_FEED_TOKEN",
+                "\"REDACTED_TOKEN\""
+            )
+            buildConfigField("String", "CUSTOM_FEED_NAME", "\"Techeaz\"")
+            buildConfigField("String", "CUSTOM_FEED_REPO", "\"TripleU613/kstore_json_techeaz\"")
+            buildConfigField("String", "CUSTOM_FEED_PATH", "\"uuupdate.json\"")
+        }
+    }
+
     val versionNameOverride = System.getenv("VERSION_NAME").orEmpty()
     val buildNumber = System.getenv("BUILD_NUMBER").orEmpty()
     defaultConfig {
@@ -66,8 +91,9 @@ android {
 
     applicationVariants.configureEach {
         outputs.configureEach {
-            val variant = (this as BaseVariantOutputImpl)
-            variant.outputFileName = defaultConfig.applicationId + "-" + buildType.name + ".apk"
+            val variant = this as BaseVariantOutputImpl
+            val flavorSuffix = if (flavorName.isNullOrBlank()) "" else "-$flavorName"
+            variant.outputFileName = defaultConfig.applicationId + flavorSuffix + "-" + buildType.name + ".apk"
         }
     }
 

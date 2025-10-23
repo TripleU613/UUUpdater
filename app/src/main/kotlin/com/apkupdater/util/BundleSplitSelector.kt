@@ -3,6 +3,7 @@ package com.apkupdater.util
 import android.content.res.Resources
 import android.os.Build
 import android.util.Log
+import androidx.core.os.ConfigurationCompat
 import com.apkupdater.util.SessionInstaller.RootFile
 import java.util.LinkedHashSet
 import java.util.Locale
@@ -117,27 +118,21 @@ object BundleSplitSelector {
     private fun deviceLanguageTokens(): Set<String> {
         val tokens = mutableSetOf<String>()
         val configuration = Resources.getSystem().configuration
-        val locales = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            val list = configuration.locales
-            (0 until list.size()).mapNotNull { list[it] }
-        } else {
-            listOf(configuration.locale)
-        }
-        locales.filterNotNull().forEach { locale ->
-            val language = locale.language?.lowercase(Locale.US).orEmpty()
-            if (language.isNotEmpty()) {
-                tokens += language
-                val region = locale.country?.lowercase(Locale.US).orEmpty()
-                if (region.isNotEmpty()) tokens += "$language-$region"
-                tokens += locale.toLanguageTag().lowercase(Locale.US)
-            }
+        val locales = ConfigurationCompat.getLocales(configuration)
+        for (index in 0 until locales.size()) {
+            val locale = locales[index] ?: continue
+            val language = locale.language.takeIf { it.isNotEmpty() }?.lowercase(Locale.US) ?: continue
+            tokens += language
+            val region = locale.country.takeIf { it.isNotEmpty() }?.lowercase(Locale.US)
+            if (region != null) tokens += "$language-$region"
+            tokens += locale.toLanguageTag().lowercase(Locale.US)
         }
         val defaultLocale = Locale.getDefault()
-        val defaultLanguage = defaultLocale.language?.lowercase(Locale.US).orEmpty()
-        if (defaultLanguage.isNotEmpty()) {
+        val defaultLanguage = defaultLocale.language.takeIf { it.isNotEmpty() }?.lowercase(Locale.US)
+        if (defaultLanguage != null) {
             tokens += defaultLanguage
-            val region = defaultLocale.country?.lowercase(Locale.US).orEmpty()
-            if (region.isNotEmpty()) tokens += "$defaultLanguage-$region"
+            val region = defaultLocale.country.takeIf { it.isNotEmpty() }?.lowercase(Locale.US)
+            if (region != null) tokens += "$defaultLanguage-$region"
             tokens += defaultLocale.toLanguageTag().lowercase(Locale.US)
         }
         tokens += "en"

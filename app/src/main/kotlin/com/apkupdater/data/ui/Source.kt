@@ -1,5 +1,6 @@
 package com.apkupdater.data.ui
 
+import com.apkupdater.BuildConfig
 import com.apkupdater.R
 
 
@@ -16,3 +17,7 @@ val AptoideSource = Source("Aptoide", R.drawable.ic_aptoide)
 val ApkPureSource = Source("ApkPure", R.drawable.ic_apkpure)
 val GitLabSource = Source("GitLab", R.drawable.ic_gitlab)
 val PlaySource = Source("Play", R.drawable.ic_play)
+val CustomFeedSource = Source(
+    BuildConfig.CUSTOM_FEED_NAME.ifBlank { "Custom" },
+    R.drawable.ic_safe
+)
