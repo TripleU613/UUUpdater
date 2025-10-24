@@ -21,3 +21,20 @@
 -keep class com.tripleu.updater.repository.CustomFeedRepository { *; }
 -keep class com.google.gson.JsonObject { *; }
 -keep class com.google.gson.JsonParser { *; }
+
+-assumenosideeffects class android.util.Log {
+    public static int v(java.lang.String, java.lang.String);
+    public static int v(java.lang.String, java.lang.String, java.lang.Throwable);
+    public static int d(java.lang.String, java.lang.String);
+    public static int d(java.lang.String, java.lang.String, java.lang.Throwable);
+    public static int i(java.lang.String, java.lang.String);
+    public static int i(java.lang.String, java.lang.String, java.lang.Throwable);
+    public static int w(java.lang.String, java.lang.String);
+    public static int w(java.lang.String, java.lang.String, java.lang.Throwable);
+    public static int e(java.lang.String, java.lang.String);
+    public static int e(java.lang.String, java.lang.String, java.lang.Throwable);
+    public static int wtf(java.lang.String, java.lang.String);
+    public static int wtf(java.lang.String, java.lang.String, java.lang.Throwable);
+    public static int println(int, java.lang.String, java.lang.String);
+}
+

@@ -1,6 +1,6 @@
 package com.tripleu.updater.repository
 
-import android.util.Log
+import com.tripleu.updater.util.NoOpLog as Log
 import com.tripleu.updater.data.apkpure.AppInfoForUpdate
 import com.tripleu.updater.data.apkpure.AppUpdateResponse
 import com.tripleu.updater.data.apkpure.DeviceHeader

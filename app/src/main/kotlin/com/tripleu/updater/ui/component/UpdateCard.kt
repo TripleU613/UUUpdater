@@ -120,7 +120,7 @@ fun UpdateCard(
                 }
 
                 if (!expanded) {
-                    // Collapsed: Source • package name (can be cut off)
+                    // Collapsed: Source \u2022 package name (can be cut off)
                     Row(
                         modifier = Modifier.padding(top = 2.dp),
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -210,10 +210,7 @@ fun UpdateCard(
             // Action Button - moved to the right
             UpdateActionButton(
                 appUpdate = appUpdate,
-                onClick = {
-                    android.util.Log.d("UpdateCard", "UpdateActionButton onClick called for: ${appUpdate.name}")
-                    onActionClick(appUpdate.link)
-                }
+                onClick = { onActionClick(appUpdate.link) }
             )
         }
 
@@ -328,10 +325,7 @@ private fun UpdateActionButton(
         }
         InstallStage.Idle -> {
             Button(
-                onClick = {
-                    android.util.Log.d("UpdateCard", "Update button clicked!")
-                    onClick()
-                },
+                onClick = onClick,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = Color.White

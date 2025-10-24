@@ -6,7 +6,7 @@ import android.content.res.Configuration
 import android.content.res.Resources
 import android.os.Build
 import android.util.Base64
-import android.util.Log
+import com.tripleu.updater.util.NoOpLog as Log
 import com.tripleu.updater.data.aptoide.ListAppsUpdatesRequest
 import com.tripleu.updater.data.aptoide.ListSearchAppsRequest
 import com.tripleu.updater.data.aptoide.toAppUpdate

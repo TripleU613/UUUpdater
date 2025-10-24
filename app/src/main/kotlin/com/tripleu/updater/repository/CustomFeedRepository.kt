@@ -1,7 +1,7 @@
 package com.tripleu.updater.repository
 
 import android.net.Uri
-import android.util.Log
+import com.tripleu.updater.util.NoOpLog as Log
 import com.tripleu.updater.BuildConfig
 import com.tripleu.updater.R
 import com.tripleu.updater.data.ui.AppInstalled

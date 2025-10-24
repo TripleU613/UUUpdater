@@ -1,6 +1,6 @@
 package com.tripleu.updater.repository
 
-import android.util.Log
+import com.tripleu.updater.util.NoOpLog as Log
 import com.tripleu.updater.data.ui.AppUpdate
 import com.tripleu.updater.data.ui.blockKey
 import com.tripleu.updater.prefs.Prefs

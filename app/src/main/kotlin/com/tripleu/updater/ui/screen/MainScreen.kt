@@ -2,7 +2,7 @@ package com.tripleu.updater.ui.screen
 
 import android.app.Activity.RESULT_CANCELED
 import android.content.Intent
-import android.util.Log
+import com.tripleu.updater.util.NoOpLog as Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult

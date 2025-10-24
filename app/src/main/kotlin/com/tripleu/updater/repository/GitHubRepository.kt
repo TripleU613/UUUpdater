@@ -2,7 +2,7 @@ package com.tripleu.updater.repository
 
 import android.net.Uri
 import android.os.Build
-import android.util.Log
+import com.tripleu.updater.util.NoOpLog as Log
 import com.tripleu.updater.BuildConfig
 import com.tripleu.updater.data.github.GitHubApps
 import com.tripleu.updater.data.github.GitHubRelease

@@ -1,6 +1,6 @@
 package com.tripleu.updater.util.play
 
-import android.util.Log
+import com.tripleu.updater.util.NoOpLog as Log
 import com.aurora.gplayapi.data.models.PlayResponse
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -34,9 +34,10 @@ class PlayHttpClient(
     private val _responseCode = MutableStateFlow(100)
     override val responseCode: StateFlow<Int> get() = _responseCode.asStateFlow()
     private val okHttpClientBuilder = OkHttpClient().newBuilder()
-        .connectTimeout(25, TimeUnit.SECONDS)
-        .readTimeout(25, TimeUnit.SECONDS)
-        .writeTimeout(25, TimeUnit.SECONDS)
+        .connectTimeout(60, TimeUnit.SECONDS)
+        .readTimeout(0, TimeUnit.MILLISECONDS)
+        .writeTimeout(0, TimeUnit.MILLISECONDS)
+        .callTimeout(0, TimeUnit.MILLISECONDS)
         .retryOnConnectionFailure(true)
         .followRedirects(true)
         .followSslRedirects(true)

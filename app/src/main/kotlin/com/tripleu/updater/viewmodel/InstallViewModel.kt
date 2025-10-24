@@ -1,6 +1,6 @@
 package com.tripleu.updater.viewmodel
 
-import android.util.Log
+import com.tripleu.updater.util.NoOpLog as Log
 import androidx.compose.ui.platform.UriHandler
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -29,7 +29,28 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlin.math.min
+private const val LOG_ENABLED = false
+private const val LOG_TAG = "InstallViewModel"
 
+private inline fun logDebug(message: () -> String) {
+    if (LOG_ENABLED) Log.d(LOG_TAG, message())
+}
+
+private inline fun logWarn(message: () -> String) {
+    if (LOG_ENABLED) Log.w(LOG_TAG, message())
+}
+
+private inline fun logWarn(throwable: Throwable, message: () -> String) {
+    if (LOG_ENABLED) Log.w(LOG_TAG, message(), throwable)
+}
+
+private inline fun logError(message: () -> String) {
+    if (LOG_ENABLED) Log.e(LOG_TAG, message())
+}
+
+private inline fun logError(throwable: Throwable, message: () -> String) {
+    if (LOG_ENABLED) Log.e(LOG_TAG, message(), throwable)
+}
 
 abstract class InstallViewModel(
     private val downloader: Downloader,
@@ -43,7 +64,7 @@ abstract class InstallViewModel(
     fun install(update: AppUpdate, @Suppress("UNUSED_PARAMETER") uriHandler: UriHandler): Job? {
         val blockedKey = update.blockKey()
         if (prefs.blockedInstallFailures.get().contains(blockedKey)) {
-            Log.w("InstallViewModel", "Skipping install for ${update.packageName} from ${update.source.name} (blocked due to previous root failures).")
+            logWarn { "Skipping install for ${update.packageName} from ${update.source.name} (blocked due to previous root failures)." }
             snackBar.snackBar(
                 viewModelScope,
                 TextSnack(stringer.get(R.string.root_install_blocked_for_version, update.name, update.source.name))
@@ -51,21 +72,21 @@ abstract class InstallViewModel(
             installLog.emitProgress(AppInstallProgress(update.id, 0L, 0L, InstallStage.Idle))
             return null
         }
-        Log.d("InstallViewModel", "install() called for: ${update.name}, source: ${update.source}, link: ${update.link}")
+        logDebug { "install() called for: ${update.name}, source: ${update.source}, link: ${update.link}" }
         val usePackageInstaller = prefs.packageInstallerInstall.get()
         val useRootInstall = prefs.rootInstall.get() && update.link !is Link.Empty
         emitInitialDownloadProgress(update)
         return when {
             usePackageInstaller -> {
-                Log.d("InstallViewModel", "Starting package installer install (link type: ${update.link::class.simpleName})")
+                logDebug { "Starting package installer install (link type: ${update.link::class.simpleName})" }
                 downloadAndInstall(update)
             }
             useRootInstall -> {
-                Log.d("InstallViewModel", "Starting root install (link type: ${update.link::class.simpleName})")
+                logDebug { "Starting root install (link type: ${update.link::class.simpleName})" }
                 downloadAndRootInstall(update)
             }
             else -> {
-                Log.d("InstallViewModel", "Starting normal install (link type: ${update.link::class.simpleName})")
+                logDebug { "Starting normal install (link type: ${update.link::class.simpleName})" }
                 downloadAndInstall(update)
             }
         }
@@ -155,10 +176,7 @@ abstract class InstallViewModel(
                     } else {
                         installer.attachInstalledBase(packageName, parsed.splits)
                             ?: run {
-                                Log.e(
-                                    "InstallViewModel",
-                                    "Archive ${downloaded.file.name} missing base split and installed base is incompatible."
-                                )
+                                logError { "Archive ${downloaded.file.name} missing base split and installed base is incompatible." }
                                 parsed.splits.forEach { runCatching { it.file.delete() } }
                                 parsed.obbEntries.forEach { runCatching { it.file.delete() } }
                                 snackBar.snackBar(
@@ -224,7 +242,7 @@ abstract class InstallViewModel(
             is Link.Play -> {
                 val remoteFiles = link.getInstallFiles()
                 if (remoteFiles.isEmpty()) {
-                    Log.w("InstallViewModel", "No files returned for Play install.")
+                    logWarn { "No files returned for Play install." }
                     installLog.emitStage(id, InstallStage.Idle)
                     cancelInstall(id)
                 } else {
@@ -256,7 +274,7 @@ abstract class InstallViewModel(
             }
         }
     }.getOrElse {
-        Log.e("InstallViewModel", "Error in downloadAndRootInstall.", it)
+        logError(it) { "Error in downloadAndRootInstall." }
         if (it is IllegalStateException) {
             snackBar.snackBar(
                 viewModelScope,
@@ -269,7 +287,7 @@ abstract class InstallViewModel(
     protected suspend fun downloadAndInstall(id: Int, packageName: String, link: Link) = runCatching {
         installLog.emitStage(id, InstallStage.Pending)
         when (link) {
-            Link.Empty -> { Log.e("InstallViewModel", "downloadAndInstall: Unsupported.")}
+            Link.Empty -> logError { "downloadAndInstall: Unsupported." }
             is Link.Play -> {
                 val files = link.getInstallFiles()
                 installLog.emitProgress(AppInstallProgress(id, 0L, files.sumOf { it.size }, InstallStage.Downloading))
@@ -289,7 +307,7 @@ abstract class InstallViewModel(
             }
         }
     }.getOrElse {
-        Log.e("InstallViewModel", "Error in downloadAndInstall.", it)
+        logError(it) { "Error in downloadAndInstall." }
         cancelInstall(id)
     }
 
@@ -347,7 +365,7 @@ abstract class InstallViewModel(
         onSuccess: (() -> Unit)? = null
     ) {
         if (files.isEmpty()) {
-            Log.e("InstallViewModel", "performRootInstall called with no files.")
+            logError { "performRootInstall called with no files." }
             installLog.emitStage(id, InstallStage.Idle)
             cancelInstall(id)
             cleanup?.invoke()
@@ -358,7 +376,7 @@ abstract class InstallViewModel(
             val result = installer.rootInstall(packageName, files)
             if (result.success) {
                 runCatching { onSuccess?.invoke() }
-                    .onFailure { Log.w("InstallViewModel", "Post-install action failed for $packageName", it) }
+                    .onFailure { logWarn(it) { "Post-install action failed for $packageName" } }
                 clearTrackedInstall(id)
                 finishInstall(id)
             } else {
@@ -367,7 +385,7 @@ abstract class InstallViewModel(
         } finally {
             files.forEach { rootFile ->
                 runCatching { if (rootFile.file.exists()) rootFile.file.delete() }
-                    .onFailure { Log.w("InstallViewModel", "Failed to delete temp file ${rootFile.file.absolutePath}", it) }
+                    .onFailure { logWarn(it) { "Failed to delete temp file ${rootFile.file.absolutePath}" } }
             }
             cleanup?.invoke()
         }
@@ -390,14 +408,14 @@ abstract class InstallViewModel(
         val autoBlock = isAutoBlockFailure(reason)
         if (autoBlock && update != null) {
             recordInstallFailure(update)
-            Log.d("InstallViewModel", "Auto-blocked ${update.packageName} from ${update.source.name} after root failure: $reason")
+            logDebug { "Auto-blocked ${update.packageName} from ${update.source.name} after root failure: $reason" }
             clearTrackedInstall(id)
             installLog.emitProgress(AppInstallProgress(id, 0L, 0L, InstallStage.Idle))
             cancelInstall(id).join()
             return
         }
 
-        Log.e("InstallViewModel", "Root install failed for $packageName: $reason")
+        logError { "Root install failed for $packageName: $reason" }
         snackBar.snackBar(viewModelScope, TextSnack(stringer.get(R.string.root_install_failed_with_reason, reason)))
         maybePromptInstallModeChange(packageName)
         installLog.emitStage(id, InstallStage.Idle)

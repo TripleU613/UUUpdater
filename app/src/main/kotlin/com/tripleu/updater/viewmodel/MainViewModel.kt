@@ -2,7 +2,7 @@ package com.tripleu.updater.viewmodel
 
 import android.content.Intent
 import android.content.pm.PackageInstaller
-import android.util.Log
+import com.tripleu.updater.util.NoOpLog as Log
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.result.ActivityResult
 import androidx.lifecycle.ViewModel

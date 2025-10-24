@@ -1,6 +1,6 @@
 package com.tripleu.updater.util
 
-import android.util.Log
+import com.tripleu.updater.util.NoOpLog as Log
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File

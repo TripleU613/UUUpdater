@@ -6,7 +6,7 @@ import android.content.ContextWrapper
 import android.content.res.Configuration
 import android.os.Build
 import android.text.TextUtils
-import android.util.Log
+import com.tripleu.updater.util.NoOpLog as Log
 import java.util.Locale
 import java.util.Properties
 import kotlin.math.abs

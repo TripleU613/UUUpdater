@@ -8,7 +8,7 @@ import android.content.pm.PackageInstaller
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES
-import android.util.Log
+import com.tripleu.updater.util.NoOpLog as Log
 import com.tripleu.updater.BuildConfig
 import com.tripleu.updater.data.ui.AppInstallProgress
 import com.tripleu.updater.ui.activity.MainActivity
@@ -724,11 +724,9 @@ fun InputStream.copyToAndNotify(out: OutputStream, id: Int, installLog: InstallL
         out.write(buffer, 0, bytes)
         bytesCopied += bytes
         val currentProgress = total + bytesCopied
-        Log.d("SessionInstaller", "Emitting progress: id=$id, progress=$currentProgress, bytesCopied=$bytesCopied, total=$total")
         installLog.emitProgress(AppInstallProgress(id, progress = currentProgress))
         bytes = read(buffer)
     }
-    Log.d("SessionInstaller", "Finished copying: id=$id, totalBytesCopied=$bytesCopied")
     return bytesCopied
 }
 

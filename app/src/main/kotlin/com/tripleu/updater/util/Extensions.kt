@@ -12,7 +12,7 @@ import android.text.Spanned
 import android.text.style.ForegroundColorSpan
 import android.text.style.StyleSpan
 import android.text.style.UnderlineSpan
-import android.util.Log
+import com.tripleu.updater.util.NoOpLog as Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.Modifier

@@ -1,6 +1,6 @@
 package com.tripleu.updater.util
 
-import android.util.Log
+import com.tripleu.updater.util.NoOpLog as Log
 import com.tripleu.updater.data.ui.AppInstallProgress
 import com.tripleu.updater.data.ui.InstallStage
 import com.topjohnwu.superuser.Shell

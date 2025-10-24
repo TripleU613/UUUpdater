@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Build
-import android.util.Log
+import com.tripleu.updater.util.NoOpLog as Log
 import com.tripleu.updater.prefs.Prefs
 import com.tripleu.updater.transform.toAppInstalled
 import com.tripleu.updater.util.orFalse

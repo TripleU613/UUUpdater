@@ -1,6 +1,6 @@
 package com.tripleu.updater.viewmodel
 
-import android.util.Log
+import com.tripleu.updater.util.NoOpLog as Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tripleu.updater.data.ui.AppsUiState

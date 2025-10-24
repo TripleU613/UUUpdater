@@ -2,7 +2,7 @@ package com.tripleu.updater.util
 
 import android.content.res.Resources
 import android.os.Build
-import android.util.Log
+import com.tripleu.updater.util.NoOpLog as Log
 import androidx.core.os.ConfigurationCompat
 import com.tripleu.updater.util.SessionInstaller.RootFile
 import java.util.LinkedHashSet
