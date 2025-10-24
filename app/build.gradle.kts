@@ -25,7 +25,6 @@ android {
         }
         create("techeaz") {
             dimension = "distribution"
-            resValue("string", "app_name", "APKUpdater Techeaz")
             buildConfigField("String", "CUSTOM_FEED_URL", "\"\"")
             buildConfigField(
                 "String",

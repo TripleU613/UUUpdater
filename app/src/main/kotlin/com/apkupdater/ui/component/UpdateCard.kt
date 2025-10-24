@@ -116,6 +116,7 @@ fun UpdateCard(
                     "ApkPure" -> Color(0xFF4CAF50)     // Green
                     "GitLab" -> Color(0xFFFC6D26)      // Orange-red
                     "Play" -> Color(0xFF34A853)        // Green
+                    "Techeaz" -> Color(0xFF1E88E5)     // Blue highlight for Techeaz feed
                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                 }
 
