@@ -6,7 +6,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.apkupdater.R
 import com.apkupdater.data.snack.TextSnack
-import com.apkupdater.data.ui.ApkMirrorSource
 import com.apkupdater.data.ui.AppInstallProgress
 import com.apkupdater.data.ui.AppInstallStatus
 import com.apkupdater.data.ui.AppUpdate
@@ -36,12 +35,12 @@ abstract class InstallViewModel(
     private val downloader: Downloader,
     private val installer: SessionInstaller,
     protected val prefs: Prefs,
-    private val snackBar: SnackBar,
+    protected val snackBar: SnackBar,
     private val stringer: Stringer,
     private val installLog: InstallLog
 ): ViewModel() {
 
-    fun install(update: AppUpdate, uriHandler: UriHandler) {
+    fun install(update: AppUpdate, @Suppress("UNUSED_PARAMETER") uriHandler: UriHandler): Job? {
         val blockedKey = update.blockKey()
         if (prefs.blockedInstallFailures.get().contains(blockedKey)) {
             Log.w("InstallViewModel", "Skipping install for ${update.packageName} from ${update.source.name} (blocked due to previous root failures).")
@@ -50,34 +49,24 @@ abstract class InstallViewModel(
                 TextSnack(stringer.get(R.string.root_install_blocked_for_version, update.name, update.source.name))
             )
             installLog.emitProgress(AppInstallProgress(update.id, 0L, 0L, InstallStage.Idle))
-            return
+            return null
         }
         Log.d("InstallViewModel", "install() called for: ${update.name}, source: ${update.source}, link: ${update.link}")
-        when (update.source) {
-            ApkMirrorSource -> {
-                Log.d("InstallViewModel", "ApkMirror source - opening URI in browser")
-                uriHandler.openUri((update.link as Link.Url).link)
+        val usePackageInstaller = prefs.packageInstallerInstall.get()
+        val useRootInstall = prefs.rootInstall.get() && update.link !is Link.Empty
+        emitInitialDownloadProgress(update)
+        return when {
+            usePackageInstaller -> {
+                Log.d("InstallViewModel", "Starting package installer install (link type: ${update.link::class.simpleName})")
+                downloadAndInstall(update)
+            }
+            useRootInstall -> {
+                Log.d("InstallViewModel", "Starting root install (link type: ${update.link::class.simpleName})")
+                downloadAndRootInstall(update)
             }
             else -> {
-                val usePackageInstaller = prefs.packageInstallerInstall.get()
-                val useRootInstall = prefs.rootInstall.get() && update.link !is Link.Empty
-                when {
-                    usePackageInstaller -> {
-                        emitInitialDownloadProgress(update)
-                        Log.d("InstallViewModel", "Starting package installer install (link type: ${update.link::class.simpleName})")
-                        downloadAndInstall(update)
-                    }
-                    useRootInstall -> {
-                        emitInitialDownloadProgress(update)
-                        Log.d("InstallViewModel", "Starting root install (link type: ${update.link::class.simpleName})")
-                        downloadAndRootInstall(update)
-                    }
-                    else -> {
-                        emitInitialDownloadProgress(update)
-                        Log.d("InstallViewModel", "Starting normal install (link type: ${update.link::class.simpleName})")
-                        downloadAndInstall(update)
-                    }
-                }
+                Log.d("InstallViewModel", "Starting normal install (link type: ${update.link::class.simpleName})")
+                downloadAndInstall(update)
             }
         }
     }
@@ -364,24 +353,12 @@ abstract class InstallViewModel(
             cleanup?.invoke()
             return
         }
-        val syncPrivApp = shouldSyncPrivApp(packageName)
         try {
             installLog.emitStage(id, InstallStage.Installing)
             val result = installer.rootInstall(packageName, files)
             if (result.success) {
                 runCatching { onSuccess?.invoke() }
                     .onFailure { Log.w("InstallViewModel", "Post-install action failed for $packageName", it) }
-                if (syncPrivApp) {
-                    val privResult = installer.installAsPrivApp(packageName, files)
-                    if (!privResult.success) {
-                        val reason = privResult.humanReadableMessage()
-                        Log.w("InstallViewModel", "Priv-app sync failed for $packageName: $reason")
-                        snackBar.snackBar(
-                            viewModelScope,
-                            TextSnack(stringer.get(R.string.priv_app_install_failed_with_reason, reason))
-                        )
-                    }
-                }
                 clearTrackedInstall(id)
                 finishInstall(id)
             } else {
@@ -440,10 +417,9 @@ abstract class InstallViewModel(
             reason.contains("INSTALL_FAILED_DUPLICATE_PERMISSION", ignoreCase = true) ||
             reason.contains("INSTALL_PARSE_FAILED", ignoreCase = true) ||
             reason.contains("FAILED COLLECTING CERTIFICATES", ignoreCase = true) ||
-            reason.contains("FAILED TO COLLECT CERTIFICATES", ignoreCase = true)
+            reason.contains("FAILED TO COLLECT CERTIFICATES", ignoreCase = true) ||
+            reason.contains("INSTALL_FAILED_UPDATE_INCOMPATIBLE", ignoreCase = true)
 
-    private fun shouldSyncPrivApp(packageName: String): Boolean =
-        prefs.privAppInstall.get() && installer.isPrivApp(packageName)
 
     private fun maybePromptInstallModeChange(
         packageName: String

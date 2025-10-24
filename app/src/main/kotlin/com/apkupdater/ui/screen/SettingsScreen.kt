@@ -2,6 +2,7 @@ package com.apkupdater.ui.screen
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,15 +12,22 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -149,6 +157,71 @@ fun AboutItem(
 
 @Composable
 fun Settings(viewModel: SettingsViewModel) = LazyColumn {
+    val isPrivilegedFlavor = BuildConfig.TECHEAZ_PRIVILEGED_INSTALLER == true
+	item {
+        val flavorLabel = if (isPrivilegedFlavor) {
+            stringResource(R.string.settings_header_techeaz_variant)
+        } else {
+            stringResource(R.string.settings_header_public_variant)
+        }
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 16.dp),
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.primaryContainer
+        ) {
+            Row(
+                modifier = Modifier.padding(20.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    modifier = Modifier.size(56.dp),
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primary
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = painterResource(R.drawable.ic_launcher_foreground),
+                            contentDescription = stringResource(R.string.app_name),
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+                }
+                Spacer(Modifier.width(16.dp))
+                Column(horizontalAlignment = Alignment.Start) {
+                    Text(
+                        text = stringResource(R.string.app_name),
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Text(
+                        text = stringResource(R.string.settings_header_version, BuildConfig.VERSION_NAME),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(R.string.settings_header_made_by),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Text(
+                        text = flavorLabel,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        Divider(modifier = Modifier.padding(horizontal = 16.dp))
+        Spacer(Modifier.height(8.dp))
+    }
+
 	item {
 		LargeTitle(stringResource(R.string.settings_ui), Modifier.padding(start = 16.dp, top = 16.dp))
 		val tvUi = remember { mutableStateOf(viewModel.getAndroidTvUi()) }
@@ -200,105 +273,92 @@ fun Settings(viewModel: SettingsViewModel) = LazyColumn {
 
 	item {
 		LargeTitle(stringResource(R.string.settings_sources), Modifier.padding(start = 16.dp, top = 16.dp))
-		SwitchSetting(
-			{ viewModel.getUseGitHub() },
-			{ viewModel.setUseGitHub(it) },
-			stringResource(R.string.source_github),
-			R.drawable.ic_github
-		)
-		SwitchSetting(
-			{ viewModel.getUseGitLab() },
-			{ viewModel.setUseGitLab(it) },
-			stringResource(R.string.source_gitlab),
-			R.drawable.ic_gitlab
-		)
-		SwitchSetting(
-			{ viewModel.getUseApkMirror() },
-			{ viewModel.setUseApkMirror(it) },
-			stringResource(R.string.source_apkmirror),
-			R.drawable.ic_apkmirror
-		)
-		SwitchSetting(
-			{ viewModel.getUseFdroid() },
-			{ viewModel.setUseFdroid(it) },
-			stringResource(R.string.source_fdroid),
-			R.drawable.ic_fdroid
-		)
-		SwitchSetting(
-			{ viewModel.getUseIzzy() },
-			{ viewModel.setUseIzzy(it) },
-			stringResource(R.string.source_izzy),
-			R.drawable.ic_izzy
-		)
-		SwitchSetting(
-			{ viewModel.getUseAptoide() },
-			{ viewModel.setUseAptoide(it) },
-			stringResource(R.string.source_aptoide),
-			R.drawable.ic_aptoide
-		)
-		SwitchSetting(
-			{ viewModel.getUseApkPure() },
-			{ viewModel.setUseApkPure(it) },
-			stringResource(R.string.source_apkpure),
-			R.drawable.ic_apkpure
-		)
-		SwitchSetting(
-			{ viewModel.getUsePlay() },
-			{ viewModel.setUsePlay(it) },
-			stringResource(R.string.source_play) + " (Alpha)",
-			R.drawable.ic_play
-		)
+	SwitchSetting(
+		{ viewModel.getUseGitHub() },
+		{ viewModel.setUseGitHub(it) },
+		stringResource(R.string.source_github),
+		R.drawable.ic_github
+	)
+	SwitchSetting(
+		{ viewModel.getUseGitLab() },
+		{ viewModel.setUseGitLab(it) },
+		stringResource(R.string.source_gitlab),
+		R.drawable.ic_gitlab
+	)
+	SwitchSetting(
+		{ viewModel.getUseFdroid() },
+		{ viewModel.setUseFdroid(it) },
+		stringResource(R.string.source_fdroid),
+		R.drawable.ic_fdroid
+	)
+	SwitchSetting(
+		{ viewModel.getUseIzzy() },
+		{ viewModel.setUseIzzy(it) },
+		stringResource(R.string.source_izzy),
+		R.drawable.ic_izzy
+	)
+	SwitchSetting(
+		{ viewModel.getUseAptoide() },
+		{ viewModel.setUseAptoide(it) },
+		stringResource(R.string.source_aptoide),
+		R.drawable.ic_aptoide
+	)
+	SwitchSetting(
+		{ viewModel.getUseApkPure() },
+		{ viewModel.setUseApkPure(it) },
+		stringResource(R.string.source_apkpure),
+		R.drawable.ic_apkpure
+	)
+	SwitchSetting(
+		{ viewModel.getUsePlay() },
+		{ viewModel.setUsePlay(it) },
+		stringResource(R.string.source_play) + " (Alpha)",
+		R.drawable.ic_play
+	)
 	}
 
 	item {
 		LargeTitle(stringResource(R.string.settings_options), Modifier.padding(start = 16.dp, top = 16.dp))
+        if (!isPrivilegedFlavor) {
+            SwitchSetting(
+                getValue = { viewModel.getRootInstall() },
+                setValue = { viewModel.setRootInstall(it) },
+                text = stringResource(R.string.root_install),
+                icon = R.drawable.ic_root,
+                description = stringResource(R.string.settings_explain_root_install)
+            )
+            SwitchSetting(
+                getValue = { viewModel.getPackageInstallerInstall() },
+                setValue = { viewModel.setPackageInstallerInstall(it) },
+                text = stringResource(R.string.package_installer_install),
+                icon = R.drawable.ic_install,
+                description = stringResource(R.string.settings_explain_package_installer)
+            )
+            SwitchSetting(
+                getValue = { !viewModel.getInstallModePromptSuppressed() },
+                setValue = { viewModel.setInstallModePromptSuppressed(!it) },
+                text = stringResource(R.string.install_mode_prompt),
+                icon = R.drawable.ic_info,
+                description = stringResource(R.string.settings_explain_install_prompt)
+            )
+        }
 		SwitchSetting(
-			{ viewModel.getRootInstall() },
-			{ viewModel.setRootInstall(it) },
-			stringResource(R.string.root_install),
-			R.drawable.ic_root
+			getValue = { viewModel.getIgnoreAlpha() },
+			setValue = { viewModel.setIgnoreAlpha(it) },
+			text = stringResource(R.string.ignore_alpha),
+			icon = R.drawable.ic_alpha
 		)
 		SwitchSetting(
-			{ viewModel.getPackageInstallerInstall() },
-			{ viewModel.setPackageInstallerInstall(it) },
-			stringResource(R.string.package_installer_install),
-			R.drawable.ic_install
+			getValue = { viewModel.getIgnoreBeta() },
+			setValue = { viewModel.setIgnoreBeta(it) },
+			text = stringResource(R.string.ignore_beta),
+			icon = R.drawable.ic_beta
 		)
 		SwitchSetting(
-			{ viewModel.getPrivAppInstall() },
-			{ viewModel.setPrivAppInstall(it) },
-			stringResource(R.string.priv_app_install),
-			R.drawable.ic_system
-		)
-		SwitchSetting(
-			{ !viewModel.getInstallModePromptSuppressed() },
-			{ viewModel.setInstallModePromptSuppressed(!it) },
-			stringResource(R.string.install_mode_prompt),
-			R.drawable.ic_info
-		)
-		SwitchSetting(
-			{ viewModel.getIgnoreAlpha() },
-			{ viewModel.setIgnoreAlpha(it) },
-			stringResource(R.string.ignore_alpha),
-			R.drawable.ic_alpha
-		)
-		SwitchSetting(
-			{ viewModel.getIgnoreBeta() },
-			{ viewModel.setIgnoreBeta(it) },
-			stringResource(R.string.ignore_beta),
-			R.drawable.ic_beta
-		)
-		SwitchSetting(
-			{ viewModel.getIgnorePreRelease() },
-			{ viewModel.setIgnorePreRelease(it) },
-			stringResource(R.string.ignore_preRelease),
-			R.drawable.ic_pre_release
-		)
-		SwitchSetting(
-			{ viewModel.getUseSafeStores() },
-			{ viewModel.setUseSafeStores(it) },
-			stringResource(R.string.use_safe_stores),
-			R.drawable.ic_safe
+			getValue = { viewModel.getIgnorePreRelease() },
+			setValue = { viewModel.setIgnorePreRelease(it) },
+			text = stringResource(R.string.ignore_preRelease),
+			icon = R.drawable.ic_pre_release
 		)
 	}
 

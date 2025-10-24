@@ -24,6 +24,7 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -119,25 +120,44 @@ fun SwitchSetting(
     getValue: () -> Boolean,
     setValue: (Boolean) -> Unit,
     text: String,
-    @DrawableRes icon: Int = R.drawable.ic_system
-) = Box (Modifier.fillMaxWidth().height(60.dp).padding(horizontal = 16.dp)) {
-    var value by remember { mutableStateOf(getValue()) }
-    Row(Modifier.align(CenterStart)) {
-        Icon(
-            painterResource(id = icon),
-            text,
-            Modifier.align(CenterVertically).padding(end = 16.dp).size(24.dp)
+    @DrawableRes icon: Int = R.drawable.ic_system,
+    description: String? = null
+) = Column(
+    Modifier
+        .fillMaxWidth()
+        .padding(horizontal = 16.dp, vertical = 8.dp)
+) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(48.dp)
+    ) {
+        Row(Modifier.align(CenterStart)) {
+            Icon(
+                painterResource(id = icon),
+                text,
+                Modifier.align(CenterVertically).padding(end = 16.dp).size(24.dp)
+            )
+            Text(text, Modifier.align(CenterVertically))
+        }
+        var value by remember { mutableStateOf(getValue()) }
+        Switch(
+            checked = value,
+            onCheckedChange = {
+                setValue(it)
+                value = getValue()
+            },
+            modifier = Modifier.align(CenterEnd)
         )
-        Text(text, Modifier.align(CenterVertically))
     }
-    Switch(
-        checked = value,
-        onCheckedChange = {
-            setValue(it)
-            value = getValue()
-        },
-        modifier = Modifier.align(CenterEnd)
-    )
+    if (description != null) {
+        Text(
+            text = description,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 40.dp, top = 4.dp, end = 0.dp)
+        )
+    }
 }
 
 @Suppress("unused")

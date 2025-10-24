@@ -9,7 +9,6 @@ data class Source(
     val resourceId: Int
 )
 
-val ApkMirrorSource = Source("ApkMirror", R.drawable.ic_apkmirror)
 val GitHubSource = Source("GitHub", R.drawable.ic_github)
 val FdroidSource = Source("F-Droid (Main)", R.drawable.ic_fdroid)
 val IzzySource = Source("F-Droid (Izzy)", R.drawable.ic_izzy)

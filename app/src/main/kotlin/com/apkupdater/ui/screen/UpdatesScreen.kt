@@ -15,10 +15,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -26,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -37,6 +40,7 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -68,6 +72,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.tv.foundation.lazy.grid.items
 import coil.compose.rememberAsyncImagePainter
+import com.apkupdater.BuildConfig
 import com.apkupdater.R
 import com.apkupdater.data.ui.AppUpdate
 import com.apkupdater.prefs.Prefs
@@ -176,6 +181,7 @@ fun UpdatesScreen(
 
 @Composable
 private fun UpdatesDrawerContent(settingsViewModel: SettingsViewModel) {
+    val isPrivilegedFlavor = BuildConfig.TECHEAZ_PRIVILEGED_INSTALLER == true
 	ModalDrawerSheet {
 		Column(
 			modifier = Modifier
@@ -183,6 +189,71 @@ private fun UpdatesDrawerContent(settingsViewModel: SettingsViewModel) {
 				.verticalScroll(rememberScrollState())
 				.padding(top = 24.dp, bottom = 24.dp)
 		) {
+            val flavorLabel = if (isPrivilegedFlavor) {
+                stringResource(R.string.settings_header_techeaz_variant)
+            } else {
+                stringResource(R.string.settings_header_public_variant)
+            }
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.primaryContainer
+            ) {
+                Row(
+                    modifier = Modifier.padding(20.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        modifier = Modifier.size(56.dp),
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primary
+                    ) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                painter = painterResource(R.drawable.ic_launcher_foreground),
+                                contentDescription = stringResource(R.string.app_name),
+                                modifier = Modifier.size(36.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column(horizontalAlignment = Alignment.Start) {
+                        Text(
+                            text = stringResource(R.string.app_name),
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Text(
+                            text = stringResource(R.string.settings_header_version, BuildConfig.VERSION_NAME),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = stringResource(R.string.settings_header_made_by),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Text(
+                            text = flavorLabel,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                thickness = DividerDefaults.Thickness,
+                color = DividerDefaults.color
+            )
+            Spacer(modifier = Modifier.height(16.dp))
 			Text(
 				text = stringResource(R.string.settings_sources),
 				style = MaterialTheme.typography.titleMedium,
@@ -200,12 +271,6 @@ private fun UpdatesDrawerContent(settingsViewModel: SettingsViewModel) {
 				setValue = { settingsViewModel.setUseGitLab(it) },
 				text = stringResource(R.string.source_gitlab),
 				icon = R.drawable.ic_gitlab
-			)
-			SwitchSetting(
-				getValue = { settingsViewModel.getUseApkMirror() },
-				setValue = { settingsViewModel.setUseApkMirror(it) },
-				text = stringResource(R.string.source_apkmirror),
-				icon = R.drawable.ic_apkmirror
 			)
 			SwitchSetting(
 				getValue = { settingsViewModel.getUseFdroid() },
@@ -250,30 +315,27 @@ private fun UpdatesDrawerContent(settingsViewModel: SettingsViewModel) {
 				modifier = Modifier.padding(horizontal = 16.dp)
 			)
 			Spacer(modifier = Modifier.height(8.dp))
-			SwitchSetting(
-				getValue = { settingsViewModel.getRootInstall() },
-				setValue = { settingsViewModel.setRootInstall(it) },
-				text = stringResource(R.string.root_install),
-				icon = R.drawable.ic_root
-			)
-			SwitchSetting(
-				getValue = { settingsViewModel.getPackageInstallerInstall() },
-				setValue = { settingsViewModel.setPackageInstallerInstall(it) },
-				text = stringResource(R.string.package_installer_install),
-				icon = R.drawable.ic_install
-			)
-			SwitchSetting(
-				getValue = { settingsViewModel.getPrivAppInstall() },
-				setValue = { settingsViewModel.setPrivAppInstall(it) },
-				text = stringResource(R.string.priv_app_install),
-				icon = R.drawable.ic_system
-			)
-			SwitchSetting(
-				getValue = { !settingsViewModel.getInstallModePromptSuppressed() },
-				setValue = { settingsViewModel.setInstallModePromptSuppressed(!it) },
-				text = stringResource(R.string.install_mode_prompt),
-				icon = R.drawable.ic_info
-			)
+            if (!isPrivilegedFlavor) {
+                SwitchSetting(
+                    getValue = { settingsViewModel.getRootInstall() },
+                    setValue = { settingsViewModel.setRootInstall(it) },
+                    text = stringResource(R.string.root_install),
+                    icon = R.drawable.ic_root
+                )
+                SwitchSetting(
+                    getValue = { settingsViewModel.getPackageInstallerInstall() },
+                    setValue = { settingsViewModel.setPackageInstallerInstall(it) },
+                    text = stringResource(R.string.package_installer_install),
+                    icon = R.drawable.ic_install,
+                    description = stringResource(R.string.settings_explain_package_installer)
+                )
+                SwitchSetting(
+                    getValue = { !settingsViewModel.getInstallModePromptSuppressed() },
+                    setValue = { settingsViewModel.setInstallModePromptSuppressed(!it) },
+                    text = stringResource(R.string.install_mode_prompt),
+                    icon = R.drawable.ic_info
+                )
+            }
 			SwitchSetting(
 				getValue = { settingsViewModel.getIgnoreAlpha() },
 				setValue = { settingsViewModel.setIgnoreAlpha(it) },
@@ -292,12 +354,6 @@ private fun UpdatesDrawerContent(settingsViewModel: SettingsViewModel) {
 				text = stringResource(R.string.ignore_preRelease),
 				icon = R.drawable.ic_pre_release
 			)
-			SwitchSetting(
-				getValue = { settingsViewModel.getUseSafeStores() },
-				setValue = { settingsViewModel.setUseSafeStores(it) },
-				text = stringResource(R.string.use_safe_stores),
-				icon = R.drawable.ic_safe
-			)
 			Spacer(modifier = Modifier.height(16.dp))
 		}
 	}
@@ -306,10 +362,11 @@ private fun UpdatesDrawerContent(settingsViewModel: SettingsViewModel) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UpdatesTopBar(
-	searchQuery: String,
-	onSearchQueryChange: (String) -> Unit,
-	onOpenDrawer: () -> Unit,
-	onUpdateAll: () -> Unit = {}
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    onOpenDrawer: () -> Unit,
+    isBulkInstalling: Boolean = false,
+    onUpdateAll: () -> Unit = {}
 ) {
 	var isSearchActive by remember { mutableStateOf(false) }
 	var showThemeDialog by remember { mutableStateOf(false) }
@@ -404,14 +461,24 @@ fun UpdatesTopBar(
 				}
 
 				IconButton(
-					onClick = { showUpdateAllDialog = true },
-					modifier = iconButtonModifier
-				) {
+                    onClick = { showUpdateAllDialog = true },
+                    modifier = iconButtonModifier,
+                    enabled = !isBulkInstalling
+                ) {
 					Icon(
 						imageVector = ImageVector.vectorResource(id = R.drawable.ic_update),
 						contentDescription = "Update All"
 					)
 				}
+
+                if (isBulkInstalling) {
+                    CircularProgressIndicator(
+                        modifier = Modifier
+                            .padding(end = 12.dp)
+                            .size(20.dp),
+                        strokeWidth = 2.dp
+                    )
+                }
 
 				IconButton(
 					onClick = { showThemeDialog = true },
@@ -478,10 +545,13 @@ fun UpdatesTopBar(
 				)
 			},
 			confirmButton = {
-				TextButton(onClick = {
-					onUpdateAll()
-					showUpdateAllDialog = false
-				}) {
+				TextButton(
+                    onClick = {
+                        onUpdateAll()
+                        showUpdateAllDialog = false
+                    },
+                    enabled = !isBulkInstalling
+                ) {
 					Text("Update All")
 				}
 			},
@@ -535,6 +605,7 @@ fun UpdatesScreenSuccess(
 	val handler = LocalUriHandler.current
 	@Suppress("DEPRECATION")
 	val tv = get<Prefs>().androidTvUi.get()
+    val isBulkInstalling by viewModel.bulkInstallRunning.collectAsStateWithLifecycle()
 
 	// Filter and sort updates alphabetically based on search query
 	val filteredUpdates = if (searchQuery.isBlank()) {
@@ -545,11 +616,13 @@ fun UpdatesScreenSuccess(
 			it.packageName.contains(searchQuery, ignoreCase = true)
 		}.sortedBy { it.name.lowercase() }
 	}
-
-    UpdatesTopBar(searchQuery, onSearchQueryChange, onOpenDrawer) {
-        filteredUpdates.forEach { update ->
-            viewModel.install(update, handler)
-        }
+    UpdatesTopBar(
+        searchQuery = searchQuery,
+        onSearchQueryChange = onSearchQueryChange,
+        onOpenDrawer = onOpenDrawer,
+        isBulkInstalling = isBulkInstalling
+    ) {
+        viewModel.installAll(filteredUpdates, handler)
     }
     RefreshIndicatorBar(visible = isRefreshing, modifier = Modifier.padding(vertical = 6.dp))
 
@@ -596,6 +669,7 @@ private fun EmptyUpdatesState() {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 32.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -622,4 +696,3 @@ private fun EmptyUpdatesState() {
         )
     }
 }
-

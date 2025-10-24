@@ -13,7 +13,6 @@ import kotlinx.coroutines.flow.flow
 
 class UpdatesRepository(
     private val appsRepository: AppsRepository,
-    private val apkMirrorRepository: ApkMirrorRepository,
     private val gitHubRepository: GitHubRepository,
     private val fdroidRepository: FdroidRepository,
     private val izzyRepository: FdroidRepository,
@@ -30,7 +29,6 @@ class UpdatesRepository(
             result.onSuccess { apps ->
                 val filtered = apps.filter { !it.ignored }
                 val sources = mutableListOf<Flow<List<AppUpdate>>>()
-                if (prefs.useApkMirror.get()) sources.add(apkMirrorRepository.updates(filtered))
                 if (prefs.useGitHub.get()) sources.add(gitHubRepository.updates(filtered))
                 if (prefs.useFdroid.get()) sources.add(fdroidRepository.updates(filtered))
                 if (prefs.useIzzy.get()) sources.add(izzyRepository.updates(filtered))

@@ -109,13 +109,12 @@ fun UpdateCard(
 
                 // Source with color coding
                 val sourceColor = when (appUpdate.source.name) {
-                    "ApkMirror" -> Color(0xFFFFB74D)  // Light orange
                     "GitHub" -> Color(0xFF9C27B0)      // Purple
                     "F-Droid (Main)", "F-Droid (Izzy)" -> Color(0xFF2196F3)  // Blue
                     "Aptoide" -> Color(0xFFFF6F00)     // Dark orange
                     "ApkPure" -> Color(0xFF4CAF50)     // Green
                     "GitLab" -> Color(0xFFFC6D26)      // Orange-red
-                    "Play" -> Color(0xFF34A853)        // Green
+                    "Play" -> Color(0xFFEA4335)        // Red
                     "Techeaz" -> Color(0xFF1E88E5)     // Blue highlight for Techeaz feed
                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                 }

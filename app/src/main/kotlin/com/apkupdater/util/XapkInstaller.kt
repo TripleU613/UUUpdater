@@ -65,13 +65,12 @@ object XapkInstaller {
     ): ParsedArchive? {
         val extractedSplits = mutableListOf<Pair<String, SessionInstaller.RootFile>>()
         val extractedObb = mutableListOf<ObbEntry>()
-        var totalApkEntries = 0
         var processedApks = 0L
 
         ZipFile(archive).use { zip ->
             val entries = zip.entries().asSequence().filterNot(ZipEntry::isDirectory).toList()
             val apkEntries = entries.filter { it.name.lowercase(Locale.US).endsWith(".apk") }
-            totalApkEntries = apkEntries.size
+            val totalApkEntries = apkEntries.size
 
             if (totalApkEntries > 0) {
                 installLog.emitProgress(

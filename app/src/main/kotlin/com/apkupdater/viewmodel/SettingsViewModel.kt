@@ -4,6 +4,7 @@ import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.WorkManager
+import com.apkupdater.BuildConfig
 import com.apkupdater.data.ui.SettingsUiState
 import com.apkupdater.prefs.Prefs
 import com.apkupdater.repository.AppsRepository
@@ -34,6 +35,7 @@ class SettingsViewModel(
 	val state = MutableStateFlow<SettingsUiState>(SettingsUiState.Settings)
 
 	init {
+        applyPrivilegedDefaultsIfNeeded()
 		viewModelScope.launch(Dispatchers.IO) {
 			sanitizeInstallPreferences()
 		}
@@ -51,10 +53,6 @@ class SettingsViewModel(
 	fun getIgnoreBeta() = prefs.ignoreBeta.get()
 	fun setIgnorePreRelease(b: Boolean) = prefs.ignorePreRelease.put(b)
 	fun getIgnorePreRelease() = prefs.ignorePreRelease.get()
-	fun getUseSafeStores() = prefs.useSafeStores.get()
-	fun setUseSafeStores(b: Boolean) = prefs.useSafeStores.put(b)
-	fun getUseApkMirror() = prefs.useApkMirror.get()
-	fun setUseApkMirror(b: Boolean) = prefs.useApkMirror.put(b)
 	fun getUseFdroid() = prefs.useFdroid.get()
 	fun setUseFdroid(b: Boolean) = prefs.useFdroid.put(b)
 	fun getUseIzzy() = prefs.useIzzy.get()
@@ -74,7 +72,6 @@ class SettingsViewModel(
 	fun getEnableAlarm() = prefs.enableAlarm.get()
 	fun getRootInstall() = prefs.rootInstall.get()
 	fun getPackageInstallerInstall() = prefs.packageInstallerInstall.get()
-	fun getPrivAppInstall() = prefs.privAppInstall.get()
 	fun getInstallModePromptSuppressed() = prefs.suppressInstallModePrompt.get()
 	fun getAlarmHour() = prefs.alarmHour.get()
 	fun getAlarmFrequency() = prefs.alarmFrequency.get()
@@ -94,7 +91,9 @@ class SettingsViewModel(
 			}
 		} else {
 			prefs.rootInstall.put(false)
-			ensurePackageInstallerEnabled()
+            if (!BuildConfig.TECHEAZ_PRIVILEGED_INSTALLER) {
+                ensurePackageInstallerEnabled()
+            }
 		}
 	}
 
@@ -106,14 +105,12 @@ class SettingsViewModel(
 			}
 		} else {
 			prefs.packageInstallerInstall.put(false)
-			if (!attemptEnableRootInstall()) {
-				ensurePackageInstallerEnabled()
-			}
+            if (!BuildConfig.TECHEAZ_PRIVILEGED_INSTALLER) {
+                if (!attemptEnableRootInstall()) {
+                    ensurePackageInstallerEnabled()
+                }
+            }
 		}
-	}
-
-	fun setPrivAppInstall(b: Boolean) {
-		prefs.privAppInstall.put(b)
 	}
 
 	fun setInstallModePromptSuppressed(b: Boolean) {
@@ -162,7 +159,23 @@ class SettingsViewModel(
 		clipboard.copy(data.decodeToString(), "App Logs")
 	}
 
+    private fun applyPrivilegedDefaultsIfNeeded() {
+        if (!BuildConfig.TECHEAZ_PRIVILEGED_INSTALLER) return
+        if (!prefs.privilegedInstallDefaultsApplied.get()) {
+            prefs.rootInstall.put(false)
+            prefs.packageInstallerInstall.put(false)
+            prefs.privilegedInstallDefaultsApplied.put(true)
+        }
+    }
+
 	private fun sanitizeInstallPreferences() {
+        if (BuildConfig.TECHEAZ_PRIVILEGED_INSTALLER) {
+            if (prefs.rootInstall.get() && prefs.packageInstallerInstall.get()) {
+                prefs.packageInstallerInstall.put(false)
+            }
+            return
+        }
+
 		val rootEnabled = prefs.rootInstall.get()
 		val packageEnabled = prefs.packageInstallerInstall.get()
 		when {
@@ -179,6 +192,7 @@ class SettingsViewModel(
 	}
 
 	private fun attemptEnableRootInstall(): Boolean {
+        if (BuildConfig.TECHEAZ_PRIVILEGED_INSTALLER) return false
 		val hasRoot = hasRootAccess()
 		if (hasRoot) {
 			prefs.rootInstall.put(true)
@@ -190,6 +204,7 @@ class SettingsViewModel(
 	}
 
 	private fun ensurePackageInstallerEnabled() {
+        if (BuildConfig.TECHEAZ_PRIVILEGED_INSTALLER) return
 		if (!prefs.packageInstallerInstall.get()) {
 			prefs.packageInstallerInstall.put(true)
 		}

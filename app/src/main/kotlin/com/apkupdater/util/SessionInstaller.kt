@@ -9,7 +9,7 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES
 import android.util.Log
-import androidx.core.content.ContextCompat.startActivity
+import androidx.core.content.ContextCompat
 import com.apkupdater.BuildConfig
 import com.apkupdater.data.ui.AppInstallProgress
 import com.apkupdater.ui.activity.MainActivity
@@ -678,12 +678,13 @@ class SessionInstaller(
     fun finish() = installMutex.unlock()
 
     fun checkPermission(): Boolean {
+        if (BuildConfig.TECHEAZ_PRIVILEGED_INSTALLER) return true
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            if(!context.packageManager.canRequestPackageInstalls()) {
+            if (!context.packageManager.canRequestPackageInstalls()) {
                 val uri = Uri.parse("package:${BuildConfig.APPLICATION_ID}")
                 val intent = Intent(ACTION_MANAGE_UNKNOWN_APP_SOURCES, uri)
                 intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                startActivity(context, intent, null)
+                ContextCompat.startActivity(context, intent, null)
                 return false
             }
         }

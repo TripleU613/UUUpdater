@@ -31,7 +31,7 @@ object BundleSplitSelector {
                 SplitAxis.DENSITY -> pickDensity(group)?.let { selected += it }
                 SplitAxis.SDK -> pickSdk(group)?.let { selected += it }
                 SplitAxis.LANGUAGE -> selected += selectLanguages(group)
-                SplitAxis.BASE, SplitAxis.UNKNOWN, null -> selected += group
+                SplitAxis.BASE, SplitAxis.UNKNOWN -> selected += group
             }
         }
 

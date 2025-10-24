@@ -53,7 +53,13 @@
     <string name="ignore_alpha">Ignore Alpha</string>
     <string name="ignore_beta">Ignore Beta</string>
     <string name="ignore_preRelease">Ignore Pre-release</string>
-    <string name="use_safe_stores">Use Safe Stores (Aptoide)</string>
+    <string name="settings_explain_root_install">Installs APKs silently using root access. Faster, but fails if signatures differ or root is unavailable.</string>
+    <string name="settings_explain_package_installer">Use Androids normal installer UI. Safest choice when root is disabled or unreliable.</string>
+    <string name="settings_explain_install_prompt">Shows a reminder to switch install mode when root fails. Disable if you never want the prompt.</string>
+    <string name="settings_header_version">Version %1$s</string>
+    <string name="settings_header_made_by">Made by TripleUTech</string>
+    <string name="settings_header_techeaz_variant">TechEaz Version</string>
+    <string name="settings_header_public_variant">Public Version</string>
     <string name="root_install">Root Install</string>
     <string name="package_installer_install">Package Installer</string>
     <string name="priv_app_install">Priv-app Install</string>
@@ -107,6 +113,5 @@
 
     <string name="login_created_by">Created by TripleUTech</string>
 </resources>
-
 
 

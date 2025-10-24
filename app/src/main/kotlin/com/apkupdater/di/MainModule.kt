@@ -6,7 +6,6 @@ import com.apkupdater.R
 import com.apkupdater.data.ui.FdroidSource
 import com.apkupdater.data.ui.IzzySource
 import com.apkupdater.prefs.Prefs
-import com.apkupdater.repository.ApkMirrorRepository
 import com.apkupdater.repository.ApkPureRepository
 import com.apkupdater.repository.AppsRepository
 import com.apkupdater.repository.AptoideRepository
@@ -18,7 +17,6 @@ import com.apkupdater.repository.GitLabRepository
 import com.apkupdater.repository.PlayRepository
 import com.apkupdater.repository.SearchRepository
 import com.apkupdater.repository.UpdatesRepository
-import com.apkupdater.service.ApkMirrorService
 import com.apkupdater.service.ApkPureService
 import com.apkupdater.service.AptoideService
 import com.apkupdater.service.FdroidService
@@ -81,15 +79,6 @@ val mainModule = module {
 	single {
 		Retrofit.Builder()
 			.client(get())
-			.baseUrl("https://www.apkmirror.com")
-			.addConverterFactory(GsonConverterFactory.create(get()))
-			.build()
-			.create(ApkMirrorService::class.java)
-	}
-
-	single {
-		Retrofit.Builder()
-			.client(get())
 			.baseUrl("https://api.github.com")
 			.addConverterFactory(GsonConverterFactory.create(get()))
 			.build()
@@ -145,8 +134,6 @@ val mainModule = module {
 		Downloader(client, apkPureClient, auroraClient, dir)
 	}
 
-	single { ApkMirrorRepository(get(), get(), androidContext().packageManager) }
-
 	single { AppsRepository(get(), get()) }
 
 	single { GitHubRepository(get(), get()) }
@@ -169,7 +156,6 @@ single {
     UpdatesRepository(
         get(),
         get(),
-        get(),
         get(named("main")),
         get(named("izzy")),
         get(),
@@ -183,7 +169,6 @@ single {
 
 single {
     SearchRepository(
-        get(),
         get(named("main")),
         get(named("izzy")),
         get(),
