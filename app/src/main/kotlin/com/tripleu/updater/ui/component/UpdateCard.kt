@@ -120,8 +120,8 @@ fun UpdateCard(
                 }
 
                 if (!expanded) {
-                    // Collapsed: Source Ã¢â‚¬Â¢ package name (can be cut off)
-                    androidx.compose.foundation.layout.Row(
+                    // Collapsed: Source • package name (can be cut off)
+                    Row(
                         modifier = Modifier.padding(top = 2.dp),
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
@@ -133,7 +133,7 @@ fun UpdateCard(
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = "Ã¢â‚¬Â¢ ${appUpdate.packageName}",
+                            text = "• ${appUpdate.packageName}",
                             style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,

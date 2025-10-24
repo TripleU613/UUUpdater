@@ -27,6 +27,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DividerDefaults
@@ -49,6 +50,7 @@ import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -156,14 +158,16 @@ fun UpdatesScreen(
 			searchQuery = searchQuery,
 			isRefreshing = isRefreshing,
 			onSearchQueryChange = { searchQuery = it },
-			onOpenDrawer = openDrawer
+			onOpenDrawer = openDrawer,
+            settingsViewModel = settingsViewModel
 		)
 	}.onError {
 		UpdatesScreenError(
 			searchQuery = searchQuery,
 			isRefreshing = isRefreshing,
 			onSearchQueryChange = { searchQuery = it },
-			onOpenDrawer = openDrawer
+			onOpenDrawer = openDrawer,
+            settingsViewModel = settingsViewModel
 		)
 	}.onSuccess {
 		UpdatesScreenSuccess(
@@ -173,7 +177,8 @@ fun UpdatesScreen(
 			isRefreshing = isRefreshing,
 			searchQuery = searchQuery,
 			onSearchQueryChange = { searchQuery = it },
-			onOpenDrawer = openDrawer
+			onOpenDrawer = openDrawer,
+            settingsViewModel = settingsViewModel
 		)
 	}
 }
@@ -365,111 +370,92 @@ fun UpdatesTopBar(
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
     onOpenDrawer: () -> Unit,
+    settingsViewModel: SettingsViewModel,
     isBulkInstalling: Boolean = false,
     onUpdateAll: () -> Unit = {}
 ) {
-	var isSearchActive by remember { mutableStateOf(false) }
-	var showThemeDialog by remember { mutableStateOf(false) }
-	var showUpdateAllDialog by remember { mutableStateOf(false) }
-	@Suppress("DEPRECATION")
-	val prefs: Prefs = get()
-	val currentTheme = prefs.theme.get()
-	val iconButtonModifier = Modifier.size(36.dp)
+    var isSearchActive by remember { mutableStateOf(false) }
+    var showThemeDialog by remember { mutableStateOf(false) }
+    var showUpdateAllDialog by remember { mutableStateOf(false) }
+    var currentTheme by remember { mutableIntStateOf(settingsViewModel.getTheme()) }
+    val iconButtonModifier = Modifier.size(36.dp)
 
-	TopAppBar(
-		title = {
-			if (isSearchActive) {
-				Box(
-					modifier = Modifier
-						.fillMaxWidth()
-						.padding(end = 8.dp)
-						.clip(CircleShape)
-						.background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-						.padding(horizontal = 12.dp, vertical = 0.dp)
-				) {
-					OutlinedTextField(
-						value = searchQuery,
-						onValueChange = onSearchQueryChange,
-						placeholder = {
-							Text(
-								"Search",
-								style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp)
-							)
-						},
-						modifier = Modifier.fillMaxWidth(),
-						singleLine = true,
-						maxLines = 1,
-						textStyle = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
-						colors = OutlinedTextFieldDefaults.colors(
-							focusedBorderColor = Color.Transparent,
-							unfocusedBorderColor = Color.Transparent,
-							focusedContainerColor = Color.Transparent,
-							unfocusedContainerColor = Color.Transparent
-						),
-						keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-						keyboardActions = KeyboardActions(onSearch = { })
-					)
-				}
-			} else {
-				Text(
-					stringResource(R.string.app_name),
-					style = MaterialTheme.typography.titleLarge,
-					fontWeight = FontWeight.SemiBold
-				)
-			}
-		},
-		colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.statusBarColor()),
-		navigationIcon = {
-			IconButton(
-				onClick = onOpenDrawer,
-				modifier = Modifier
-					.minimumInteractiveComponentSize()
-					.padding(start = 8.dp)
-			) {
-				Image(
-					painter = rememberAsyncImagePainter(R.mipmap.ic_launcher_round),
-					contentDescription = "Open drawer",
-					modifier = Modifier
-						.size(32.dp)
-						.clip(CircleShape)
-				)
-			}
-		},
-		actions = {
-			if (isSearchActive) {
-				IconButton(
-					onClick = {
-						isSearchActive = false
-						onSearchQueryChange("")
-					},
-					modifier = iconButtonModifier
-				) {
-					Icon(
-						imageVector = Icons.Filled.Close,
-						contentDescription = "Clear search"
-					)
-				}
-			} else {
-				IconButton(
-					onClick = { isSearchActive = true },
-					modifier = iconButtonModifier
-				) {
-					Icon(
-						imageVector = Icons.Filled.Search,
-						contentDescription = "Search"
-					)
-				}
+    TopAppBar(
+        title = {
+            if (isSearchActive) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(end = 8.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        .padding(horizontal = 12.dp)
+                ) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = onSearchQueryChange,
+                        placeholder = {
+                            Text(
+                                "Search",
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp)
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        textStyle = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color.Transparent,
+                            unfocusedBorderColor = Color.Transparent,
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent
+                        ),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(onSearch = { })
+                    )
+                }
+            } else {
+                Text(
+                    stringResource(R.string.app_name),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        },
+        actions = {
+            if (isSearchActive) {
+                IconButton(
+                    onClick = {
+                        isSearchActive = false
+                        onSearchQueryChange("")
+                    },
+                    modifier = iconButtonModifier
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = "Clear search"
+                    )
+                }
+            } else {
+                IconButton(
+                    onClick = { isSearchActive = true },
+                    modifier = iconButtonModifier
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Search,
+                        contentDescription = "Search"
+                    )
+                }
 
-				IconButton(
+                IconButton(
                     onClick = { showUpdateAllDialog = true },
                     modifier = iconButtonModifier,
                     enabled = !isBulkInstalling
                 ) {
-					Icon(
-						imageVector = ImageVector.vectorResource(id = R.drawable.ic_update),
-						contentDescription = "Update All"
-					)
-				}
+                    Icon(
+                        imageVector = ImageVector.vectorResource(id = R.drawable.ic_update),
+                        contentDescription = "Update All"
+                    )
+                }
 
                 if (isBulkInstalling) {
                     CircularProgressIndicator(
@@ -480,127 +466,144 @@ fun UpdatesTopBar(
                     )
                 }
 
-				IconButton(
-					onClick = { showThemeDialog = true },
-					modifier = iconButtonModifier
-				) {
-					Icon(
-						painter = painterResource(R.drawable.ic_daynight),
-						contentDescription = "Toggle Theme"
-					)
-				}
-			}
-		}
-	)
-
-	if (showThemeDialog) {
-		val newTheme = if (currentTheme == 1) 2 else 1
-		val newThemeName = if (newTheme == 1) "Dark" else "Light"
-
-		AlertDialog(
-			onDismissRequest = { showThemeDialog = false },
-			title = {
-				Text(
-					"Change Theme",
-					style = MaterialTheme.typography.headlineSmall
-				)
-			},
-			text = {
-				Text(
-					"Switch to $newThemeName theme? The app will restart.",
-					style = MaterialTheme.typography.bodyMedium
-				)
-			},
-			confirmButton = {
-				TextButton(onClick = {
-					prefs.theme.put(newTheme)
-					showThemeDialog = false
-				}) {
-					Text("Yes")
-				}
-			},
-			dismissButton = {
-				TextButton(onClick = {
-					showThemeDialog = false
-				}) {
-					Text("Cancel")
-				}
-			}
-		)
-	}
-
-	if (showUpdateAllDialog) {
-		AlertDialog(
-			onDismissRequest = { showUpdateAllDialog = false },
-			title = {
-				Text(
-					"Update All Apps",
-					style = MaterialTheme.typography.headlineSmall
-				)
-			},
-			text = {
-				Text(
-					"This will download and install all available updates. Continue?",
-					style = MaterialTheme.typography.bodyMedium
-				)
-			},
-			confirmButton = {
-				TextButton(
-                    onClick = {
-                        onUpdateAll()
-                        showUpdateAllDialog = false
-                    },
-                    enabled = !isBulkInstalling
+                IconButton(
+                    onClick = { showThemeDialog = true },
+                    modifier = iconButtonModifier
                 ) {
-					Text("Update All")
-				}
-			},
-			dismissButton = {
-				TextButton(onClick = {
-					showUpdateAllDialog = false
-				}) {
-					Text("Cancel")
-				}
-			}
-		)
-	}
+                    Icon(
+                        painter = painterResource(R.drawable.ic_daynight),
+                        contentDescription = "Toggle Theme"
+                    )
+                }
+
+                IconButton(
+                    onClick = onOpenDrawer,
+                    modifier = iconButtonModifier.minimumInteractiveComponentSize()
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Menu,
+                        contentDescription = "Open Drawer"
+                    )
+                }
+            }
+        }
+    )
+
+    if (showThemeDialog) {
+        val newTheme = if (currentTheme == 1) 2 else 1
+        val newThemeName = if (newTheme == 1) "Dark" else "Light"
+
+        AlertDialog(
+            onDismissRequest = { showThemeDialog = false },
+            title = {
+                Text(
+                    "Change Theme",
+                    style = MaterialTheme.typography.headlineSmall
+                )
+            },
+            text = {
+                Text(
+                    "Switch to $newThemeName theme?",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    settingsViewModel.setTheme(newTheme)
+                    currentTheme = newTheme
+                    showThemeDialog = false
+                }) {
+                    Text("Yes")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showThemeDialog = false }) {
+                    Text("No")
+                }
+            }
+        )
+    }
+
+    if (showUpdateAllDialog) {
+        AlertDialog(
+            onDismissRequest = { showUpdateAllDialog = false },
+            title = {
+                Text(
+                    "Install All Updates",
+                    style = MaterialTheme.typography.headlineSmall
+                )
+            },
+            text = {
+                Text(
+                    "Install updates from all sources?",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    onUpdateAll()
+                    showUpdateAllDialog = false
+                }) {
+                    Text("Yes")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showUpdateAllDialog = false }) {
+                    Text("No")
+                }
+            }
+        )
+    }
 }
 
 @Composable
 fun UpdatesScreenLoading(
-	@Suppress("UNUSED_PARAMETER") viewModel: UpdatesViewModel,
-	@Suppress("UNUSED_PARAMETER") navController: NavController,
-	searchQuery: String,
-	isRefreshing: Boolean,
-	onSearchQueryChange: (String) -> Unit,
-	onOpenDrawer: () -> Unit
+    @Suppress("UNUSED_PARAMETER") viewModel: UpdatesViewModel,
+    @Suppress("UNUSED_PARAMETER") navController: NavController,
+    searchQuery: String,
+    isRefreshing: Boolean,
+    onSearchQueryChange: (String) -> Unit,
+    onOpenDrawer: () -> Unit,
+    settingsViewModel: SettingsViewModel
 ) = Column {
-	UpdatesTopBar(searchQuery, onSearchQueryChange, onOpenDrawer)
+    UpdatesTopBar(
+        searchQuery = searchQuery,
+        onSearchQueryChange = onSearchQueryChange,
+        onOpenDrawer = onOpenDrawer,
+        settingsViewModel = settingsViewModel
+    )
 	RefreshIndicatorBar(visible = isRefreshing, modifier = Modifier.padding(vertical = 6.dp))
 	LoadingGrid()
 }
 
 @Composable
 fun UpdatesScreenError(
-	searchQuery: String,
-	isRefreshing: Boolean,
-	onSearchQueryChange: (String) -> Unit,
-	onOpenDrawer: () -> Unit
+    searchQuery: String,
+    isRefreshing: Boolean,
+    onSearchQueryChange: (String) -> Unit,
+    onOpenDrawer: () -> Unit,
+    settingsViewModel: SettingsViewModel
 ) = Column {
-	UpdatesTopBar(searchQuery, onSearchQueryChange, onOpenDrawer)
+    UpdatesTopBar(
+        searchQuery = searchQuery,
+        onSearchQueryChange = onSearchQueryChange,
+        onOpenDrawer = onOpenDrawer,
+        settingsViewModel = settingsViewModel
+    )
 	RefreshIndicatorBar(visible = isRefreshing, modifier = Modifier.padding(vertical = 6.dp))
 	DefaultErrorScreen()
 }
 
 @Composable
 fun UpdatesScreenSuccess(
-	viewModel: UpdatesViewModel,
-	@Suppress("UNUSED_PARAMETER") navController: NavController,
-	updates: List<AppUpdate>,
-	isRefreshing: Boolean,
-	searchQuery: String,
-	onSearchQueryChange: (String) -> Unit,
-	onOpenDrawer: () -> Unit
+    viewModel: UpdatesViewModel,
+    @Suppress("UNUSED_PARAMETER") navController: NavController,
+    updates: List<AppUpdate>,
+    isRefreshing: Boolean,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    onOpenDrawer: () -> Unit,
+    settingsViewModel: SettingsViewModel
 ) = Column {
 	val handler = LocalUriHandler.current
 	@Suppress("DEPRECATION")
@@ -620,6 +623,7 @@ fun UpdatesScreenSuccess(
         searchQuery = searchQuery,
         onSearchQueryChange = onSearchQueryChange,
         onOpenDrawer = onOpenDrawer,
+        settingsViewModel = settingsViewModel,
         isBulkInstalling = isBulkInstalling
     ) {
         viewModel.installAll(filteredUpdates, handler)

@@ -4,13 +4,20 @@ import androidx.annotation.DrawableRes
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.focusable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -27,7 +34,9 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -38,8 +47,11 @@ import androidx.compose.ui.Alignment.Companion.CenterEnd
 import androidx.compose.ui.Alignment.Companion.CenterStart
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Alignment.Companion.Start
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -57,28 +69,70 @@ fun SliderSetting(
     valueRange: ClosedFloatingPointRange<Float>,
     steps: Int,
     @DrawableRes icon: Int
-) = Row(
-    Modifier
-        .fillMaxWidth()
-        .height(70.dp)
-        .padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp)
 ) {
     var position by remember { mutableFloatStateOf(getValue()) }
-    Icon(painterResource(id = icon), text, Modifier.align(CenterVertically))
-    Column(Modifier.padding(start = 8.dp).fillMaxWidth()) {
-        Box(Modifier.fillMaxWidth()) {
-            Text(text, Modifier.align(CenterStart).padding(start = 8.dp))
-            Text("${getValue().toInt()}", Modifier.align(CenterEnd).padding(end = 8.dp))
+    LaunchedEffect(getValue()) {
+        position = getValue()
+    }
+
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 56.dp),
+            verticalAlignment = CenterVertically
+        ) {
+            Icon(
+                painterResource(id = icon),
+                contentDescription = text,
+                modifier = Modifier
+                    .padding(end = 16.dp)
+                    .size(24.dp)
+            )
+            Column(Modifier.weight(1f)) {
+                Text(text = text)
+                Text(
+                    text = position.toInt().toString(),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Row {
+                IconButton(
+                    onClick = {
+                        val next = (position - 1f).coerceAtLeast(valueRange.start)
+                        position = next
+                        setValue(next)
+                    },
+                    modifier = Modifier.focusable()
+                ) {
+                    Icon(Icons.Filled.Remove, contentDescription = "Decrease $text")
+                }
+                IconButton(
+                    onClick = {
+                        val next = (position + 1f).coerceAtMost(valueRange.endInclusive)
+                        position = next
+                        setValue(next)
+                    },
+                    modifier = Modifier.focusable()
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = "Increase $text")
+                }
+            }
         }
         Slider(
             value = position,
+            onValueChange = { newValue ->
+                position = newValue
+                setValue(newValue)
+            },
             valueRange = valueRange,
             steps = steps,
-            onValueChange = {
-                position = it
-                setValue(it)
-            },
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+            modifier = Modifier.fillMaxWidth()
         )
     }
 }
@@ -105,7 +159,7 @@ fun SegmentedButtonSetting(
                         setValue(position)
                     },
                     selected = index == position
-                ) {
+) {
                     Text(label)
                 }
             }
@@ -120,41 +174,51 @@ fun SwitchSetting(
     text: String,
     @DrawableRes icon: Int = R.drawable.ic_system,
     description: String? = null
-) = Column(
-    Modifier
-        .fillMaxWidth()
-        .padding(horizontal = 16.dp, vertical = 8.dp)
 ) {
-    Box(
+    var focused by remember { mutableStateOf(false) }
+    Column(
         Modifier
             .fillMaxWidth()
-            .height(48.dp)
-    ) {
-        Row(Modifier.align(CenterStart)) {
-            Icon(
-                painterResource(id = icon),
-                text,
-                Modifier.align(CenterVertically).padding(end = 16.dp).size(24.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(
+                if (focused) MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp)
+                else Color.Transparent
             )
-            Text(text, Modifier.align(CenterVertically))
+            .onFocusChanged { focused = it.isFocused }
+            .focusable()
+    ) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+        ) {
+            Row(Modifier.align(CenterStart)) {
+                Icon(
+                    painterResource(id = icon),
+                    text,
+                    Modifier.align(CenterVertically).padding(end = 16.dp).size(24.dp)
+                )
+                Text(text, Modifier.align(CenterVertically))
+            }
+            var value by remember { mutableStateOf(getValue()) }
+            Switch(
+                checked = value,
+                onCheckedChange = {
+                    setValue(it)
+                    value = getValue()
+                },
+                modifier = Modifier.align(CenterEnd).focusable()
+            )
         }
-        var value by remember { mutableStateOf(getValue()) }
-        Switch(
-            checked = value,
-            onCheckedChange = {
-                setValue(it)
-                value = getValue()
-            },
-            modifier = Modifier.align(CenterEnd)
-        )
-    }
-    if (description != null) {
-        Text(
-            text = description,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 40.dp, top = 4.dp, end = 0.dp)
-        )
+        if (description != null) {
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 40.dp, top = 4.dp, end = 0.dp)
+            )
+        }
     }
 }
 
@@ -168,45 +232,55 @@ fun DropDownSetting(
     setValue: (Int) -> Unit,
     @DrawableRes icon: Int,
     width: Int = 100
-) = Box(Modifier.padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 8.dp).fillMaxWidth()) {
+) {
     var expanded by remember { mutableStateOf(false) }
     var selectedOptionText by remember { mutableStateOf(options[getValue()]) }
 
-    Row(Modifier.align(CenterStart)) {
-        Icon(
-            painterResource(id = icon),
-            text,
-            Modifier.align(CenterVertically).padding(end = 16.dp).size(24.dp)
-        )
-        Text(text,  Modifier.align(CenterVertically))
-    }
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded },
-        modifier = Modifier.align(CenterEnd).width(width.dp)
+    Box(
+        Modifier
+            .padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 8.dp)
+            .fillMaxWidth()
     ) {
-        OutlinedTextField(
-            readOnly = true,
-            value = selectedOptionText,
-            onValueChange = {},
-            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable),
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            colors = ExposedDropdownMenuDefaults.textFieldColors(),
-            singleLine = true
-        )
-        ExposedDropdownMenu(
+        Row(Modifier.align(CenterStart)) {
+            Icon(
+                painterResource(id = icon),
+                contentDescription = text,
+                modifier = Modifier.align(CenterVertically).padding(end = 16.dp).size(24.dp)
+            )
+            Text(text, Modifier.align(CenterVertically))
+        }
+
+        ExposedDropdownMenuBox(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onExpandedChange = { expanded = !expanded },
+            modifier = Modifier
+                .align(CenterEnd)
+                .focusable()
+                .width(width.dp)
         ) {
-            options.forEachIndexed { i, option ->
-                DropdownMenuItem(
-                    text = { Text(text = option) },
-                    onClick = {
-                        selectedOptionText = option
-                        expanded = false
-                        setValue(i)
-                    }
-                )
+            OutlinedTextField(
+                readOnly = true,
+                value = selectedOptionText,
+                onValueChange = {},
+                modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                colors = ExposedDropdownMenuDefaults.textFieldColors(),
+                singleLine = true
+            )
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                options.forEachIndexed { i, option ->
+                    DropdownMenuItem(
+                        text = { Text(text = option) },
+                        onClick = {
+                            selectedOptionText = option
+                            expanded = false
+                            setValue(i)
+                        }
+                    )
+                }
             }
         }
     }

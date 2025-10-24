@@ -3,7 +3,7 @@ setlocal enabledelayedexpansion
 
 REM Optional first argument: path to the Techeaz release APK.
 set "APK_PATH=%~1"
-if "%APK_PATH%"=="" set "APK_PATH=%USERPROFILE%\StudioProjects\UUUpdater\app\techeaz\release\com.tripleu.updater-techeaz-release.apk"
+if "%APK_PATH%"=="" set "APK_PATH=%USERPROFILE%\StudioProjects\UUUpdater\app\techeaz\release\com.tripleu.updater--release.apk"
 
 REM Optional second argument: path to the priv-app permissions XML.
 set "PERMS_PATH=%~2"
