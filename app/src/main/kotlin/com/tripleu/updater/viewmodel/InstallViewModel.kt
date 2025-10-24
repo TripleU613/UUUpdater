@@ -28,6 +28,7 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlin.io.buffered
 import kotlin.math.min
 private const val LOG_ENABLED = false
 private const val LOG_TAG = "InstallViewModel"
@@ -290,14 +291,57 @@ abstract class InstallViewModel(
             Link.Empty -> logError { "downloadAndInstall: Unsupported." }
             is Link.Play -> {
                 val files = link.getInstallFiles()
-                installLog.emitProgress(AppInstallProgress(id, 0L, files.sumOf { it.size }, InstallStage.Downloading))
-                installer.playInstall(id, packageName, files.map { downloader.downloadStream(it.url)!! })
-                installLog.emitStage(id, InstallStage.Installing)
+                val total = files.fold(0L) { acc, file ->
+                    val size = if (file.size > 0L) file.size else 0L
+                    acc + size
+                }
+                val totalHint = total.takeIf { it > 0L }
+                installLog.emitProgress(AppInstallProgress(id, 0L, totalHint, InstallStage.Downloading))
+                val downloadedFiles = mutableListOf<RootFile>()
+                val streams = mutableListOf<java.io.InputStream>()
+                var offset = 0L
+                try {
+                    files.forEach { remote ->
+                        val (downloaded, bytes) = downloadFile(
+                            id = id,
+                            url = remote.url,
+                            total = totalHint,
+                            offset = offset,
+                            sessionName = remote.name.takeIf { it.isNotBlank() }
+                        )
+                        offset += bytes
+                        downloadedFiles += downloaded
+                    }
+                    downloadedFiles.forEach { local ->
+                        streams += local.file.inputStream().buffered()
+                    }
+                    installer.playInstall(id, packageName, streams)
+                    installLog.emitStage(id, InstallStage.Installing)
+                } finally {
+                    streams.forEach { runCatching { it.close() } }
+                    downloadedFiles.forEach { local ->
+                        runCatching { if (local.file.exists()) local.file.delete() }
+                    }
+                }
             }
             is Link.Url -> {
                 val size = if (link.size > 0) link.size else downloader.getContentLength(link.link)
-                installLog.emitProgress(AppInstallProgress(id, 0L, size, InstallStage.Downloading))
-                installer.install(id, packageName, downloader.downloadStream(link.link)!!)
+                val totalHint = size.takeIf { it > 0 }
+                installLog.emitProgress(AppInstallProgress(id, 0L, totalHint, InstallStage.Downloading))
+                val (downloaded, _) = downloadFile(
+                    id = id,
+                    url = link.link,
+                    total = totalHint,
+                    offset = 0L,
+                    sessionName = sessionNameFromUrl(link.link)
+                )
+                try {
+                    downloaded.file.inputStream().buffered().use { stream ->
+                        installer.install(id, packageName, stream)
+                    }
+                } finally {
+                    runCatching { if (downloaded.file.exists()) downloaded.file.delete() }
+                }
                 installLog.emitStage(id, InstallStage.Installing)
             }
             is Link.Xapk -> {
@@ -339,7 +383,7 @@ abstract class InstallViewModel(
         val file = downloader.download(url) { bytes, reportedTotal ->
             bytesCopied = bytes
             if ((knownTotal == null || knownTotal == 0L) && reportedTotal > 0) {
-                knownTotal = reportedTotal
+                knownTotal = if (total == null || total == 0L) offset + reportedTotal else reportedTotal
             }
             emitDownloadProgress(id, offset + bytes, knownTotal)
         }
