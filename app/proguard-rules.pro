@@ -16,9 +16,8 @@
 -keep,allowoptimization,allowshrinking,allowobfuscation class <3>
 
 # Models
--keep class com.apkupdater.data.** { *; }
+-keep class com.tripleu.updater.data.** { *; }
 
--keep class com.apkupdater.repository.CustomFeedRepository { *; }
+-keep class com.tripleu.updater.repository.CustomFeedRepository { *; }
 -keep class com.google.gson.JsonObject { *; }
 -keep class com.google.gson.JsonParser { *; }
-

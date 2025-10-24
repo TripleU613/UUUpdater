@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-UUUpdater ships as a single Android module in `app/`. Production code sits in `app/src/main/kotlin/com/apkupdater`, grouped into `data/`, `repository/`, `service/`, `ui/`, `viewmodel/`, `worker/`, `util/`, and `di/` for Koin wiring. Resources stay in `app/src/main/res/` with localized strings under `values-*`. Unit tests live in `app/src/test/kotlin/`; Compose and Espresso suites in `app/src/androidTest/kotlin/`. Automation assets are tracked in `fastlane/`, while Gradle wrapper files are under `gradle/`.
+UUUpdater ships as a single Android module in `app/`. Production code sits in `app/src/main/kotlin/com/tripleu/updater`, grouped into `data/`, `repository/`, `service/`, `ui/`, `viewmodel/`, `worker/`, `util/`, and `di/` for Koin wiring. Resources stay in `app/src/main/res/` with localized strings under `values-*`. Unit tests live in `app/src/test/kotlin/`; Compose and Espresso suites in `app/src/androidTest/kotlin/`. Automation assets are tracked in `fastlane/`, while Gradle wrapper files are under `gradle/`.
 
 ## Build, Test, and Development Commands
 - `./gradlew assembleDebug` (`gradlew.bat` on Windows) builds the debug APK with current assets.

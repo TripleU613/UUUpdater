@@ -3,11 +3,11 @@ setlocal enabledelayedexpansion
 
 REM Optional first argument: path to the Techeaz release APK.
 set "APK_PATH=%~1"
-if "%APK_PATH%"=="" set "APK_PATH=%USERPROFILE%\StudioProjects\UUUpdater\app\techeaz\release\com.apkupdater-techeaz-release.apk"
+if "%APK_PATH%"=="" set "APK_PATH=%USERPROFILE%\StudioProjects\UUUpdater\app\techeaz\release\com.tripleu.updater-techeaz-release.apk"
 
 REM Optional second argument: path to the priv-app permissions XML.
 set "PERMS_PATH=%~2"
-if "%PERMS_PATH%"=="" set "PERMS_PATH=%USERPROFILE%\StudioProjects\UUUpdater\com.apkupdater-permissions.xml"
+if "%PERMS_PATH%"=="" set "PERMS_PATH=%USERPROFILE%\StudioProjects\UUUpdater\com.tripleu.updater-permissions.xml"
 
 if not exist "%APK_PATH%" (
     echo [ERROR] APK not found at "%APK_PATH%".
@@ -36,7 +36,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-adb push "%PERMS_PATH%" /sdcard/com.apkupdater-permissions.xml 1>nul
+adb push "%PERMS_PATH%" /sdcard/com.tripleu.updater-permissions.xml 1>nul
 if errorlevel 1 (
     echo [ERROR] Failed to push permissions XML to device.
     exit /b 1
@@ -50,11 +50,11 @@ if errorlevel 1 (
 )
 
 adb shell su -c "mkdir -p /system/etc/permissions /system/priv-app/UUUpdater"
-adb shell su -c "cp /sdcard/com.apkupdater-permissions.xml /system/etc/permissions/com.apkupdater-permissions.xml"
+adb shell su -c "cp /sdcard/com.tripleu.updater-permissions.xml /system/etc/permissions/com.tripleu.updater-permissions.xml"
 adb shell su -c "cp /sdcard/UUUpdater.apk /system/priv-app/UUUpdater/UUUpdater.apk"
-adb shell su -c "chmod 0644 /system/etc/permissions/com.apkupdater-permissions.xml /system/priv-app/UUUpdater/UUUpdater.apk"
-adb shell su -c "chown root:root /system/etc/permissions/com.apkupdater-permissions.xml /system/priv-app/UUUpdater/UUUpdater.apk"
-adb shell su -c "restorecon /system/etc/permissions/com.apkupdater-permissions.xml"
+adb shell su -c "chmod 0644 /system/etc/permissions/com.tripleu.updater-permissions.xml /system/priv-app/UUUpdater/UUUpdater.apk"
+adb shell su -c "chown root:root /system/etc/permissions/com.tripleu.updater-permissions.xml /system/priv-app/UUUpdater/UUUpdater.apk"
+adb shell su -c "restorecon /system/etc/permissions/com.tripleu.updater-permissions.xml"
 adb shell su -c "restorecon /system/priv-app/UUUpdater/UUUpdater.apk"
 
 adb shell su -c "mount -o remount,ro / || mount -o ro,remount /"

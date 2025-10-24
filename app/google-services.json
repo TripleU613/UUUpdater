@@ -8,17 +8,17 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:224507510743:android:eb6c607b3d12a55530d592",
+        "mobilesdk_app_id": "1:224507510743:android:330c0dabff40ffa630d592",
         "android_client_info": {
-          "package_name": "com.apkupdater"
+          "package_name": "com.tripleu.updater"
         }
       },
       "oauth_client": [
         {
-          "client_id": "224507510743-fc3tu4ptfrmbskdtpi1pe3cuf3of63fo.apps.googleusercontent.com",
+          "client_id": "224507510743-40ne31bo90on22kp1j5rbn8tvsvedtrr.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.apkupdater",
+            "package_name": "com.tripleu.updater",
             "certificate_hash": "aa58e18bc6961e8ea184e45374a8be29ed8edfe1"
           }
         },
