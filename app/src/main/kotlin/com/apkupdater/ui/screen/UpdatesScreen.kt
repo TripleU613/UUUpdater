@@ -208,7 +208,7 @@ private fun UpdatesDrawerContent(settingsViewModel: SettingsViewModel) {
                     Surface(
                         modifier = Modifier.size(56.dp),
                         shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primary
+                        color = Color.White
                     ) {
                         Box(
                             modifier = Modifier.fillMaxSize(),
