@@ -123,6 +123,10 @@ class MainViewModel(
 
     fun getLastRoute() = prefs.lastTab.get()
 
+    fun evaluateSpoofPrompt() {
+        maybePromptSpoofReboot()
+    }
+
     fun onUpdatesLoadingTimeout() {
         if (updatesTimeoutHandled) return
         updatesTimeoutHandled = true
