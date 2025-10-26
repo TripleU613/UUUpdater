@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -28,6 +30,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.VolumeOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DividerDefaults
@@ -48,6 +51,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -77,6 +83,7 @@ import coil.compose.rememberAsyncImagePainter
 import com.tripleu.updater.BuildConfig
 import com.tripleu.updater.R
 import com.tripleu.updater.data.ui.AppUpdate
+import com.tripleu.updater.data.ui.MutedApp
 import com.tripleu.updater.prefs.Prefs
 import com.tripleu.updater.ui.component.DefaultErrorScreen
 import com.tripleu.updater.ui.component.LoadingGrid
@@ -92,6 +99,9 @@ import com.tripleu.updater.viewmodel.SettingsViewModel
 import com.tripleu.updater.viewmodel.UpdatesViewModel
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.get
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.ui.unit.Dp
+import kotlin.math.abs
 
 
 @Composable
@@ -111,11 +121,16 @@ fun UpdatesScreen(
 		installModePrompt = it
 	}
 	val state = viewModel.state().collectAsStateWithLifecycle().value
+    val mutedApps by viewModel.mutedApps.collectAsStateWithLifecycle()
 
 	ModalNavigationDrawer(
 		drawerState = drawerState,
 		drawerContent = {
-			UpdatesDrawerContent(settingsViewModel)
+			UpdatesDrawerContent(
+                settingsViewModel = settingsViewModel,
+                mutedApps = mutedApps,
+                onUnmute = viewModel::unmute
+            )
 		}
 	) {
 		val openDrawer: () -> Unit = {
@@ -178,14 +193,19 @@ fun UpdatesScreen(
 			searchQuery = searchQuery,
 			onSearchQueryChange = { searchQuery = it },
 			onOpenDrawer = openDrawer,
-            settingsViewModel = settingsViewModel
+            settingsViewModel = settingsViewModel,
+            onMute = viewModel::mute
 		)
 	}
 }
 }
 
 @Composable
-private fun UpdatesDrawerContent(settingsViewModel: SettingsViewModel) {
+private fun UpdatesDrawerContent(
+    settingsViewModel: SettingsViewModel,
+    mutedApps: List<MutedApp>,
+    onUnmute: (String) -> Unit
+) {
     val isPrivilegedFlavor = BuildConfig.TECHEAZ_PRIVILEGED_INSTALLER == true
 	ModalDrawerSheet {
 		Column(
@@ -359,6 +379,76 @@ private fun UpdatesDrawerContent(settingsViewModel: SettingsViewModel) {
 				text = stringResource(R.string.ignore_preRelease),
 				icon = R.drawable.ic_pre_release
 			)
+			Spacer(modifier = Modifier.height(24.dp))
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                thickness = DividerDefaults.Thickness,
+                color = DividerDefaults.color
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = stringResource(R.string.muted_apps_title),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            if (mutedApps.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.muted_apps_empty),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    mutedApps.forEach { muted ->
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(18.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.VolumeOff,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text(
+                                        text = muted.label,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = muted.packageName,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                TextButton(
+                                    onClick = { onUnmute(muted.packageName) }
+                                ) {
+                                    Text(text = stringResource(R.string.action_unmute))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 			Spacer(modifier = Modifier.height(16.dp))
 		}
 	}
@@ -603,7 +693,8 @@ fun UpdatesScreenSuccess(
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
     onOpenDrawer: () -> Unit,
-    settingsViewModel: SettingsViewModel
+    settingsViewModel: SettingsViewModel,
+    onMute: (AppUpdate) -> Unit
 ) = Column {
 	val handler = LocalUriHandler.current
 	@Suppress("DEPRECATION")
@@ -633,7 +724,7 @@ fun UpdatesScreenSuccess(
     when {
         filteredUpdates.isEmpty() -> EmptyUpdatesState()
         tv -> TvGrid(viewModel, filteredUpdates, handler)
-        !tv -> ListLayout(viewModel, filteredUpdates, handler)
+        !tv -> ListLayout(viewModel, filteredUpdates, handler, onMute)
     }
 }
 
@@ -652,19 +743,85 @@ fun TvGrid(
 	}
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListLayout(
 	viewModel: UpdatesViewModel,
 	updates: List<AppUpdate>,
-	handler: UriHandler
+	handler: UriHandler,
+    onMute: (AppUpdate) -> Unit
 ) = LazyColumn(
-	modifier = Modifier.fillMaxSize()
+	modifier = Modifier.fillMaxSize(),
+    contentPadding = PaddingValues(vertical = 8.dp)
 ) {
-	items(updates) { update ->
-		UpdateCard(
-			appUpdate = update,
-			onActionClick = { viewModel.install(update, handler) }
-		)
+	items(
+        items = updates,
+        key = { it.id }
+    ) { update ->
+        val dismissState = rememberSwipeToDismissBoxState(
+            confirmValueChange = { value ->
+                if (value == SwipeToDismissBoxValue.EndToStart) {
+                    onMute(update)
+                    true
+                } else {
+                    false
+                }
+            }
+        )
+        SwipeToDismissBox(
+            modifier = Modifier.padding(vertical = 4.dp),
+            state = dismissState,
+            enableDismissFromStartToEnd = false,
+            backgroundContent = {
+                val dangerColor = MaterialTheme.colorScheme.error
+                BoxWithConstraints(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    val widthPx = constraints.maxWidth
+                    val offset = dismissState.requireOffset()
+                    val fraction = if (widthPx > 0) {
+                        (abs(offset) / widthPx.toFloat()).coerceIn(0f, 1f)
+                    } else {
+                        0f
+                    }
+                    if (fraction > 0f) {
+                        val revealWidth: Dp = maxWidth * fraction
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .width(revealWidth)
+                                .align(if (offset < 0) Alignment.CenterEnd else Alignment.CenterStart)
+                                .background(dangerColor)
+                                .padding(horizontal = 24.dp),
+                            contentAlignment = if (offset < 0) Alignment.CenterEnd else Alignment.CenterStart
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.VolumeOff,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                                Text(
+                                    text = stringResource(R.string.action_mute),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        ) {
+            UpdateCard(
+                appUpdate = update,
+                onActionClick = { viewModel.install(update, handler) }
+            )
+        }
 	}
 }
 

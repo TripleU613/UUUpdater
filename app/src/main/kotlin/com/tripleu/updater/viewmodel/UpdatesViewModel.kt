@@ -1,13 +1,16 @@
 package com.tripleu.updater.viewmodel
 
-import androidx.lifecycle.viewModelScope
 import androidx.compose.ui.platform.UriHandler
+import androidx.lifecycle.viewModelScope
+import com.tripleu.updater.R
 import com.tripleu.updater.data.ui.AppUpdate
 import com.tripleu.updater.data.ui.InstallStage
+import com.tripleu.updater.data.ui.MutedApp
 import com.tripleu.updater.data.ui.UpdatesUiState
 import com.tripleu.updater.data.ui.removeId
 import com.tripleu.updater.data.ui.setInstallStage
 import com.tripleu.updater.data.ui.setProgress
+import com.tripleu.updater.data.snack.TextSnack
 import com.tripleu.updater.prefs.Prefs
 import com.tripleu.updater.repository.UpdatesRepository
 import com.tripleu.updater.util.Badger
@@ -41,9 +44,15 @@ class UpdatesViewModel(
 	private val state = MutableStateFlow<UpdatesUiState>(UpdatesUiState.Loading)
     private val _bulkInstallRunning = MutableStateFlow(false)
     val bulkInstallRunning: StateFlow<Boolean> = _bulkInstallRunning.asStateFlow()
+    private val _mutedApps = MutableStateFlow(prefs.mutedApps.get())
+    val mutedApps: StateFlow<List<MutedApp>> = _mutedApps.asStateFlow()
     private var bulkInstallJob: Job? = null
+    private var lastFetchedUpdates: List<AppUpdate> = emptyList()
 
         init {
+                if (_mutedApps.value.isNotEmpty()) {
+                        persistMuted(_mutedApps.value)
+                }
                 subscribeToInstallStatus(state.value.updates())
                 subscribeToInstallProgress { progress ->
                         val updated = state.value.mutableUpdates().setProgress(progress)
@@ -57,7 +66,7 @@ class UpdatesViewModel(
 		if (load) state.value = UpdatesUiState.Loading
 		badger.changeUpdatesBadge("")
         updatesRepository.updates().collect {
-            setSuccess(it)
+            setSuccess(it, cacheSource = true)
         }
     }
 
@@ -65,7 +74,9 @@ class UpdatesViewModel(
         if (updates.isEmpty()) return
         if (bulkInstallJob?.isActive == true) return
 
+        val mutedPackages = _mutedApps.value.map { it.packageName }.toSet()
         val queue = updates
+            .filter { it.packageName !in mutedPackages }
             .distinctBy { it.packageName to it.versionCode }
 
         if (queue.isEmpty()) return
@@ -87,7 +98,7 @@ class UpdatesViewModel(
 		val ignored = prefs.ignoredVersions.get().toMutableList()
 		if (ignored.contains(id)) ignored.remove(id) else ignored.add(id)
 		prefs.ignoredVersions.put(ignored)
-		setSuccess(state.value.mutableUpdates())
+		setSuccess(lastFetchedUpdates)
 	}
 
     override fun cancelInstall(id: Int) = viewModelScope.launchWithMutex(mutex, Dispatchers.IO) {
@@ -95,7 +106,7 @@ class UpdatesViewModel(
         val updates = state.value.mutableUpdates()
         if (blocked) {
             clearTrackedInstall(id)
-            setSuccess(updates.removeId(id))
+            setSuccess(updates.removeId(id), cacheSource = false)
         } else {
             state.value = UpdatesUiState.Success(updates.setInstallStage(id, InstallStage.Idle).applyActiveInstallState())
             clearTrackedInstall(id)
@@ -105,7 +116,7 @@ class UpdatesViewModel(
 
     override fun finishInstall(id: Int) = viewModelScope.launchWithMutex(mutex, Dispatchers.IO) {
         clearTrackedInstall(id)
-        setSuccess(state.value.mutableUpdates().removeId(id))
+        setSuccess(state.value.mutableUpdates().removeId(id), cacheSource = false)
         installer.finish()
     }
 
@@ -130,11 +141,57 @@ class UpdatesViewModel(
 	private fun List<AppUpdate>.filterIgnoredVersions(ignoredVersions: List<Int>) = this
 		.filter { !ignoredVersions.contains(it.id) }
 
-	private fun setSuccess(updates: List<AppUpdate>) = updates
-		.filterIgnoredVersions(prefs.ignoredVersions.get())
-		.let {
-	state.value = UpdatesUiState.Success(it.applyActiveInstallState())
-			badger.changeUpdatesBadge(it.size.toString())
-		}
+    private fun List<AppUpdate>.filterMuted(muted: List<MutedApp>): List<AppUpdate> {
+        if (muted.isEmpty()) return this
+        val mutedPackages = muted.map { it.packageName }.toSet()
+        return filter { it.packageName !in mutedPackages }
+    }
+
+    fun mute(update: AppUpdate) = viewModelScope.launchWithMutex(mutex, Dispatchers.IO) {
+        val label = update.name.ifBlank { update.packageName }
+        val current = prefs.mutedApps.get().toMutableList()
+        val existingIndex = current.indexOfFirst { it.packageName == update.packageName }
+        if (existingIndex >= 0) {
+            current[existingIndex] = current[existingIndex].copy(label = label)
+        } else {
+            current.add(MutedApp(update.packageName, label))
+        }
+        persistMuted(current)
+        setSuccess(lastFetchedUpdates)
+        snackBar.snackBar(viewModelScope, TextSnack(stringer.get(R.string.snackbar_app_muted, label)))
+    }
+
+    fun unmute(packageName: String) = viewModelScope.launchWithMutex(mutex, Dispatchers.IO) {
+        val current = prefs.mutedApps.get().toMutableList()
+        val removed = current.firstOrNull { it.packageName == packageName } ?: return@launchWithMutex
+        current.removeAll { it.packageName == packageName }
+        persistMuted(current)
+        setSuccess(lastFetchedUpdates)
+        snackBar.snackBar(viewModelScope, TextSnack(stringer.get(R.string.snackbar_app_unmuted, removed.label)))
+    }
+
+    private fun persistMuted(apps: List<MutedApp>) {
+        val normalized = apps.map { muted ->
+            val label = muted.label.ifBlank { muted.packageName }
+            muted.copy(label = label)
+        }
+        val deduped = normalized
+            .distinctBy { it.packageName }
+            .sortedBy { it.label.lowercase() }
+        prefs.mutedApps.put(deduped)
+        _mutedApps.value = deduped
+    }
+
+	private fun setSuccess(updates: List<AppUpdate>, cacheSource: Boolean = false) {
+        if (cacheSource || lastFetchedUpdates !== updates) {
+            lastFetchedUpdates = updates
+        }
+        val filtered = updates
+            .filterIgnoredVersions(prefs.ignoredVersions.get())
+            .filterMuted(_mutedApps.value)
+            .applyActiveInstallState()
+        state.value = UpdatesUiState.Success(filtered)
+        badger.changeUpdatesBadge(filtered.size.toString())
+    }
 
 }

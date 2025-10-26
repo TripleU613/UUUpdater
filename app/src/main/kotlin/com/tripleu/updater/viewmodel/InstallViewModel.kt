@@ -58,7 +58,7 @@ abstract class InstallViewModel(
     private val installer: SessionInstaller,
     protected val prefs: Prefs,
     protected val snackBar: SnackBar,
-    private val stringer: Stringer,
+    protected val stringer: Stringer,
     private val installLog: InstallLog
 ): ViewModel() {
 

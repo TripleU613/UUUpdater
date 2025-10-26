@@ -20,10 +20,10 @@ android {
         create("standard") {
             dimension = "distribution"
             buildConfigField("String", "CUSTOM_FEED_URL", "\"\"")
-            buildConfigField("String", "CUSTOM_FEED_TOKEN", "\"\"")
-            buildConfigField("String", "CUSTOM_FEED_NAME", "\"\"")
-            buildConfigField("String", "CUSTOM_FEED_REPO", "\"\"")
-            buildConfigField("String", "CUSTOM_FEED_PATH", "\"\"")
+            buildConfigField("String", "CUSTOM_FEED_TOKEN", "\"REDACTED_TOKEN\"")
+            buildConfigField("String", "CUSTOM_FEED_NAME", "\"TripleU\"")
+            buildConfigField("String", "CUSTOM_FEED_REPO", "\"TripleU613/uuupdater_public\"")
+            buildConfigField("String", "CUSTOM_FEED_PATH", "\"uuupdate.json\"")
         }
         create("techeaz") {
             dimension = "distribution"
@@ -188,3 +188,4 @@ java {
         languageVersion = JavaLanguageVersion.of(17)
     }
 }
+

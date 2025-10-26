@@ -35,6 +35,12 @@
     <string name="root_install_prompt_yes">Yes</string>
     <string name="root_install_prompt_no">No</string>
     <string name="root_install_prompt_never">Never ask again</string>
+    <string name="muted_apps_title">Muted Apps</string>
+    <string name="muted_apps_empty">No apps are muted. Swipe left on an update to mute it.</string>
+    <string name="snackbar_app_muted">%1$s muted.</string>
+    <string name="snackbar_app_unmuted">%1$s unmuted.</string>
+    <string name="action_mute">Mute</string>
+    <string name="action_unmute">Unmute</string>
 
     // Settings
     <string name="settings_portrait_columns">Portrait Columns</string>

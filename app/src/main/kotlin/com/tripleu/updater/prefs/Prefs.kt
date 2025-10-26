@@ -1,5 +1,6 @@
 package com.tripleu.updater.prefs
 
+import com.tripleu.updater.data.ui.MutedApp
 import com.tripleu.updater.data.ui.Screen
 import com.aurora.gplayapi.data.models.AuthData
 import com.kryptoprefs.context.KryptoContext
@@ -12,6 +13,7 @@ class Prefs(
 	@Suppress("UNUSED_PARAMETER") isAndroidTv: Boolean
 ): KryptoContext(prefs) {
 	val ignoredApps = json("ignoredApps", emptyList<String>(), true)
+	val mutedApps = json("mutedApps", emptyList<MutedApp>(), true)
 	val ignoredVersions = json("ignoredVersions", emptyList<Int>(), true)
 	val excludeSystem = boolean("excludeSystem", defValue = false, backed = true)
 	val excludeDisabled = boolean("excludeDisabled", defValue = true, backed = true)

@@ -319,6 +319,7 @@ fun Settings(viewModel: SettingsViewModel) = LazyColumn {
 
 	item {
 		LargeTitle(stringResource(R.string.settings_options), Modifier.padding(start = 16.dp, top = 16.dp))
+        val showInstallDescriptions = !isPrivilegedFlavor
         if (!isPrivilegedFlavor) {
             SwitchSetting(
                 getValue = { viewModel.getRootInstall() },
@@ -327,21 +328,21 @@ fun Settings(viewModel: SettingsViewModel) = LazyColumn {
                 icon = R.drawable.ic_root,
                 description = stringResource(R.string.settings_explain_root_install)
             )
-            SwitchSetting(
-                getValue = { viewModel.getPackageInstallerInstall() },
-                setValue = { viewModel.setPackageInstallerInstall(it) },
-                text = stringResource(R.string.package_installer_install),
-                icon = R.drawable.ic_install,
-                description = stringResource(R.string.settings_explain_package_installer)
-            )
-            SwitchSetting(
-                getValue = { !viewModel.getInstallModePromptSuppressed() },
-                setValue = { viewModel.setInstallModePromptSuppressed(!it) },
-                text = stringResource(R.string.install_mode_prompt),
-                icon = R.drawable.ic_info,
-                description = stringResource(R.string.settings_explain_install_prompt)
-            )
         }
+        SwitchSetting(
+            getValue = { viewModel.getPackageInstallerInstall() },
+            setValue = { viewModel.setPackageInstallerInstall(it) },
+            text = stringResource(R.string.package_installer_install),
+            icon = R.drawable.ic_install,
+            description = stringResource(R.string.settings_explain_package_installer)
+        )
+        SwitchSetting(
+            getValue = { !viewModel.getInstallModePromptSuppressed() },
+            setValue = { viewModel.setInstallModePromptSuppressed(!it) },
+            text = stringResource(R.string.install_mode_prompt),
+            icon = R.drawable.ic_info,
+            description = if (showInstallDescriptions) stringResource(R.string.settings_explain_install_prompt) else null
+        )
 		SwitchSetting(
 			getValue = { viewModel.getIgnoreAlpha() },
 			setValue = { viewModel.setIgnoreAlpha(it) },
