@@ -135,9 +135,16 @@ class MainViewModel(
             _drawerCommands.emit(DrawerCommand.Open)
             _uiEvents.emit(
                 UiEvent.ShowMessage(
-                    "Connection failed, open the sidebar and switch sources off depending on the error, restart the app and try again."
+                    "ay connection failed, open the sidebar and switch sources off depending on the error, restart the app and try again."
                 )
             )
+            if (BuildConfig.TECHEAZ_PRIVILEGED_INSTALLER) {
+                prefs.playSpoofRebootPending.put(true)
+                if (!prefs.playSpoofRebootHandled.get()) {
+                    spoofPromptShown.set(false)
+                    maybePromptSpoofReboot()
+                }
+            }
         }
     }
 
@@ -160,8 +167,8 @@ class MainViewModel(
 
     fun onSpoofRebootPromptDismissed() {
         viewModelScope.launch {
-            spoofPromptShown.set(false)
-            prefs.playSpoofRebootHandled.put(true)
+            prefs.playSpoofRebootPending.put(true)
+            prefs.playSpoofRebootHandled.put(false)
             _uiEvents.emit(UiEvent.ShowMessage("Reboot skipped. Play Store spoof may remain unstable."))
         }
     }
