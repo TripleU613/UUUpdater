@@ -95,8 +95,10 @@ import com.tripleu.updater.ui.component.UpdateCard
 import com.tripleu.updater.ui.theme.statusBarColor
 import com.tripleu.updater.util.InstallLog
 import com.tripleu.updater.util.InstallModePrompt
+import com.tripleu.updater.viewmodel.MainViewModel
 import com.tripleu.updater.viewmodel.SettingsViewModel
 import com.tripleu.updater.viewmodel.UpdatesViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.get
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -106,10 +108,11 @@ import kotlin.math.abs
 
 @Composable
 fun UpdatesScreen(
-	viewModel: UpdatesViewModel,
-	navController: NavController,
-	settingsViewModel: SettingsViewModel,
-	isRefreshing: Boolean = false
+    viewModel: UpdatesViewModel,
+    navController: NavController,
+    settingsViewModel: SettingsViewModel,
+    mainViewModel: MainViewModel,
+    isRefreshing: Boolean = false
 ) {
 	var searchQuery by remember { mutableStateOf("") }
 	val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -122,6 +125,13 @@ fun UpdatesScreen(
 	}
 	val state = viewModel.state().collectAsStateWithLifecycle().value
     val mutedApps by viewModel.mutedApps.collectAsStateWithLifecycle()
+
+
+    mainViewModel.drawerCommands.CollectAsEffect(Dispatchers.Main) { command ->
+        when (command) {
+            MainViewModel.DrawerCommand.Open -> scope.launch { drawerState.open() }
+        }
+    }
 
 	ModalNavigationDrawer(
 		drawerState = drawerState,
@@ -347,13 +357,14 @@ private fun UpdatesDrawerContent(
                     text = stringResource(R.string.root_install),
                     icon = R.drawable.ic_root
                 )
-                SwitchSetting(
-                    getValue = { settingsViewModel.getPackageInstallerInstall() },
-                    setValue = { settingsViewModel.setPackageInstallerInstall(it) },
-                    text = stringResource(R.string.package_installer_install),
-                    icon = R.drawable.ic_install,
-                    description = stringResource(R.string.settings_explain_package_installer)
-                )
+            }
+            SwitchSetting(
+                getValue = { settingsViewModel.getPackageInstallerInstall() },
+                setValue = { settingsViewModel.setPackageInstallerInstall(it) },
+                text = stringResource(R.string.package_installer_install),
+                icon = R.drawable.ic_install
+            )
+            if (!isPrivilegedFlavor) {
                 SwitchSetting(
                     getValue = { !settingsViewModel.getInstallModePromptSuppressed() },
                     setValue = { settingsViewModel.setInstallModePromptSuppressed(!it) },
@@ -777,40 +788,47 @@ fun ListLayout(
                 BoxWithConstraints(
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    val widthPx = constraints.maxWidth
-                    val offset = dismissState.requireOffset()
-                    val fraction = if (widthPx > 0) {
-                        (abs(offset) / widthPx.toFloat()).coerceIn(0f, 1f)
-                    } else {
-                        0f
-                    }
-                    if (fraction > 0f) {
-                        val revealWidth: Dp = maxWidth * fraction
-                        Box(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .width(revealWidth)
-                                .align(if (offset < 0) Alignment.CenterEnd else Alignment.CenterStart)
-                                .background(dangerColor)
-                                .padding(horizontal = 24.dp),
-                            contentAlignment = if (offset < 0) Alignment.CenterEnd else Alignment.CenterStart
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    val direction = dismissState.dismissDirection
+                    if (direction == SwipeToDismissBoxValue.EndToStart) {
+                        val offset = runCatching { dismissState.requireOffset() }.getOrNull()
+                        val fraction = if (offset != null && !offset.isNaN()) {
+                            val widthPx = constraints.maxWidth
+                            if (widthPx > 0) {
+                                (abs(offset) / widthPx.toFloat()).coerceIn(0f, 1f)
+                            } else {
+                                0f
+                            }
+                        } else {
+                            0f
+                        }
+                        if (fraction > 0f) {
+                            val revealWidth: Dp = maxWidth * fraction
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .width(revealWidth)
+                                    .align(Alignment.CenterEnd)
+                                    .background(dangerColor)
+                                    .padding(horizontal = 24.dp),
+                                contentAlignment = Alignment.CenterEnd
                             ) {
-                                Icon(
-                                    imageVector = Icons.Filled.VolumeOff,
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                                Text(
-                                    text = stringResource(R.string.action_mute),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = Color.White,
-                                    fontWeight = FontWeight.SemiBold
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.VolumeOff,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.action_mute),
+                                        style = MaterialTheme.typography.titleSmall,
+                                        color = Color.White,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
                             }
                         }
                     }

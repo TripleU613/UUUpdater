@@ -37,6 +37,7 @@ android {
             buildConfigField("String", "CUSTOM_FEED_REPO", "\"TripleU613/kstore_json_techeaz\"")
             buildConfigField("String", "CUSTOM_FEED_PATH", "\"uuupdate.json\"")
             buildConfigField("Boolean", "TECHEAZ_PRIVILEGED_INSTALLER", "true")
+            buildConfigField("Boolean", "ENABLE_PLAY_DEBUG_LOGS", "true")
         }
     }
 
@@ -57,6 +58,7 @@ android {
         vectorDrawables.useSupportLibrary = true
         multiDexEnabled = true
         buildConfigField("Boolean", "TECHEAZ_PRIVILEGED_INSTALLER", "false")
+        buildConfigField("Boolean", "ENABLE_PLAY_DEBUG_LOGS", "false")
     }
 
     signingConfigs {

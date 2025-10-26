@@ -46,4 +46,6 @@ class Prefs(
 	val blockedCertificateSources = json("blockedCertificateSources", emptyList<String>(), true)
 	val blockedInstallFailures = json("blockedInstallFailures", emptyList<String>(), true)
 	val privilegedInstallDefaultsApplied = boolean("privilegedInstallDefaultsApplied", defValue = false, backed = true)
+    val playSpoofRebootPending = boolean("playSpoofRebootPending", defValue = false, backed = true)
+    val playSpoofRebootHandled = boolean("playSpoofRebootHandled", defValue = false, backed = true)
 }

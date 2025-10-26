@@ -24,6 +24,7 @@ import com.tripleu.updater.service.GitHubService
 import com.tripleu.updater.service.GitLabService
 import com.tripleu.updater.util.Badger
 import com.tripleu.updater.util.Clipboard
+import com.tripleu.updater.util.DeviceRebooter
 import com.tripleu.updater.util.Downloader
 import com.tripleu.updater.util.InstallLog
 import com.tripleu.updater.util.SessionInstaller
@@ -183,6 +184,8 @@ val mainModule = module {
 
 	single { CustomFeedRepository(get(), get()) }
 
+    single { DeviceRebooter(androidContext()) }
+
 	single(named("main")) { FdroidRepository(get(), "https://f-droid.org/repo/", FdroidSource, get()) }
 
 	single(named("izzy")) { FdroidRepository(get(), "https://apt.izzysoft.de/fdroid/repo/", IzzySource, get()) }
@@ -244,7 +247,7 @@ val mainModule = module {
 
 	single { AuthRepository(get(), get()) }
 
-	viewModel { MainViewModel(get(), get()) }
+	viewModel { MainViewModel(get(), get(), get()) }
 
 	viewModel { AuthViewModel(get()) }
 

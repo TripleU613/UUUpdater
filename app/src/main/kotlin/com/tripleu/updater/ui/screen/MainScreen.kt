@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Icon
@@ -27,6 +28,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
@@ -34,6 +36,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -82,6 +87,17 @@ fun MainScreen(mainViewModel: MainViewModel = koinViewModel()) {
 	// Navigation
 	val navController = rememberNavController()
 
+    var showSpoofDialog by remember { mutableStateOf(false) }
+
+    val snackBarHostState = handleSnackBar()
+
+    mainViewModel.uiEvents.CollectAsEffect(Dispatchers.Main) { event ->
+        when (event) {
+            MainViewModel.UiEvent.ShowSpoofRebootPrompt -> showSpoofDialog = true
+            is MainViewModel.UiEvent.ShowMessage -> snackBarHostState.showSnackbar(event.message)
+        }
+    }
+
     val isRefreshing = mainViewModel.isRefreshing.collectAsStateWithLifecycle()
     val pullRefreshState = rememberPullRefreshState(
         refreshing = isRefreshing.value,
@@ -111,8 +127,29 @@ fun MainScreen(mainViewModel: MainViewModel = koinViewModel()) {
 	@Suppress("DEPRECATION")
 	val theme = get<Themer>().flow().collectAsStateWithLifecycle().value
 
-	// SnackBar
-	val snackBarHostState = handleSnackBar()
+    if (showSpoofDialog) {
+        AlertDialog(
+            onDismissRequest = {},
+            title = { Text(text = "Reboot Required") },
+            text = { Text(text = "Needs a reboot to sync Play Store spoof.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showSpoofDialog = false
+                    mainViewModel.onSpoofRebootPromptAccepted()
+                }) {
+                    Text(text = "Reboot now")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showSpoofDialog = false
+                    mainViewModel.onSpoofRebootPromptDismissed()
+                }) {
+                    Text(text = "Later")
+                }
+            }
+        )
+    }
 
 	AppTheme(theme) {
 		Scaffold(
@@ -206,5 +243,13 @@ fun NavHost(
 ) {
 	composable(Screen.Apps.route) { AppsScreen(appsViewModel, isRefreshing) }
 	composable(Screen.Search.route) { SearchScreen(searchViewModel, isRefreshing) }
-	composable(Screen.Updates.route) { UpdatesScreen(updatesViewModel, navController, settingsViewModel, isRefreshing) }
+	composable(Screen.Updates.route) {
+        UpdatesScreen(
+            viewModel = updatesViewModel,
+            navController = navController,
+            settingsViewModel = settingsViewModel,
+            mainViewModel = mainViewModel,
+            isRefreshing = isRefreshing
+        )
+    }
 }
