@@ -497,7 +497,7 @@ fun UpdatesTopBar(
                         onValueChange = onSearchQueryChange,
                         placeholder = {
                             Text(
-                                "Search",
+                                stringResource(R.string.tab_search),
                                 style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp)
                             )
                         },
@@ -533,7 +533,7 @@ fun UpdatesTopBar(
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Close,
-                        contentDescription = "Clear search"
+                        contentDescription = stringResource(R.string.clear_search_cd)
                     )
                 }
             } else {
@@ -543,7 +543,7 @@ fun UpdatesTopBar(
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Search,
-                        contentDescription = "Search"
+                        contentDescription = stringResource(R.string.search_cd)
                     )
                 }
 
@@ -554,7 +554,7 @@ fun UpdatesTopBar(
                 ) {
                     Icon(
                         imageVector = ImageVector.vectorResource(id = R.drawable.ic_update),
-                        contentDescription = "Update All"
+                        contentDescription = stringResource(R.string.update_all_cd)
                     )
                 }
 
@@ -573,7 +573,7 @@ fun UpdatesTopBar(
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.ic_daynight),
-                        contentDescription = "Toggle Theme"
+                        contentDescription = stringResource(R.string.toggle_theme_cd)
                     )
                 }
 
@@ -583,7 +583,7 @@ fun UpdatesTopBar(
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Menu,
-                        contentDescription = "Open Drawer"
+                        contentDescription = stringResource(R.string.open_drawer_cd)
                     )
                 }
             }
@@ -592,19 +592,21 @@ fun UpdatesTopBar(
 
     if (showThemeDialog) {
         val newTheme = if (currentTheme == 1) 2 else 1
-        val newThemeName = if (newTheme == 1) "Dark" else "Light"
+        val newThemeName = stringResource(
+            if (newTheme == 1) R.string.theme_dark else R.string.theme_light
+        )
 
         AlertDialog(
             onDismissRequest = { showThemeDialog = false },
             title = {
                 Text(
-                    "Change Theme",
+                    stringResource(R.string.change_theme_title),
                     style = MaterialTheme.typography.headlineSmall
                 )
             },
             text = {
                 Text(
-                    "Switch to $newThemeName theme?",
+                    stringResource(R.string.change_theme_message, newThemeName),
                     style = MaterialTheme.typography.bodyMedium
                 )
             },
@@ -614,12 +616,12 @@ fun UpdatesTopBar(
                     currentTheme = newTheme
                     showThemeDialog = false
                 }) {
-                    Text("Yes")
+                    Text(stringResource(R.string.common_yes))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showThemeDialog = false }) {
-                    Text("No")
+                    Text(stringResource(R.string.common_no))
                 }
             }
         )
@@ -630,13 +632,13 @@ fun UpdatesTopBar(
             onDismissRequest = { showUpdateAllDialog = false },
             title = {
                 Text(
-                    "Install All Updates",
+                    stringResource(R.string.install_all_updates_title),
                     style = MaterialTheme.typography.headlineSmall
                 )
             },
             text = {
                 Text(
-                    "Install updates from all sources?",
+                    stringResource(R.string.install_all_updates_message),
                     style = MaterialTheme.typography.bodyMedium
                 )
             },
@@ -645,12 +647,12 @@ fun UpdatesTopBar(
                     onUpdateAll()
                     showUpdateAllDialog = false
                 }) {
-                    Text("Yes")
+                    Text(stringResource(R.string.common_yes))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showUpdateAllDialog = false }) {
-                    Text("No")
+                    Text(stringResource(R.string.common_no))
                 }
             }
         )

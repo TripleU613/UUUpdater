@@ -41,16 +41,29 @@
     <string name="snackbar_app_unmuted">%1$s unmuted.</string>
     <string name="action_mute">Mute</string>
     <string name="action_unmute">Unmute</string>
+    <string name="clear_search_cd">Clear search</string>
+    <string name="search_cd">Search</string>
+    <string name="update_all_cd">Update all</string>
+    <string name="toggle_theme_cd">Toggle theme</string>
+    <string name="open_drawer_cd">Open drawer</string>
+    <string name="common_yes">Yes</string>
+    <string name="common_no">No</string>
+    <string name="slider_decrease">Decrease %1$s</string>
+    <string name="slider_increase">Increase %1$s</string>
 
     // Settings
     <string name="settings_portrait_columns">Portrait Columns</string>
     <string name="settings_landscape_columns">Landscape Columns</string>
     <string name="play_text_animations">Play Text Animations</string>
+    <string name="change_theme_title">Change Theme</string>
+    <string name="change_theme_message">Switch to %1$s theme?</string>
     <string name="settings_sources">Sources</string>
     <string name="settings_ui">UI</string>
     <string name="settings_alarm">Alarm</string>
     <string name="settings_options">Options</string>
     <string name="settings_utils">Utils</string>
+    <string name="install_all_updates_title">Install All Updates</string>
+    <string name="install_all_updates_message">Install updates from all sources?</string>
     <string name="settings_hour">Alarm Hour</string>
     <string name="settings_alarm_daily">Daily</string>
     <string name="settings_alarm_3day">3-Day</string>
