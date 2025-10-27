@@ -110,7 +110,10 @@ fun SliderSetting(
                     },
                     modifier = Modifier.focusable()
                 ) {
-                    Icon(Icons.Filled.Remove, contentDescription = "Decrease $text")
+                    Icon(
+                        Icons.Filled.Remove,
+                        contentDescription = stringResource(R.string.slider_decrease, text)
+                    )
                 }
                 IconButton(
                     onClick = {
@@ -120,7 +123,10 @@ fun SliderSetting(
                     },
                     modifier = Modifier.focusable()
                 ) {
-                    Icon(Icons.Filled.Add, contentDescription = "Increase $text")
+                    Icon(
+                        Icons.Filled.Add,
+                        contentDescription = stringResource(R.string.slider_increase, text)
+                    )
                 }
             }
         }

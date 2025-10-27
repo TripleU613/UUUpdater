@@ -104,13 +104,13 @@ fun AppsTopBar(
 	},
 	navigationIcon = {
 		Box(Modifier.minimumInteractiveComponentSize().size(40.dp), Alignment.Center) {
-			Image(
-				painter = rememberAsyncImagePainter(R.mipmap.ic_launcher_round),
-				contentDescription = "App Icon",
-				modifier = Modifier.size(40.dp).clip(CircleShape).background(androidx.compose.ui.graphics.Color.White)
-			)
-		}
-	}
+                        Image(
+                                painter = rememberAsyncImagePainter(R.mipmap.ic_launcher_round),
+                                contentDescription = stringResource(R.string.app_cd),
+                                modifier = Modifier.size(40.dp).clip(CircleShape).background(androidx.compose.ui.graphics.Color.White)
+                        )
+                }
+        }
 )
 
 @Composable
