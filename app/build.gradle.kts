@@ -98,7 +98,7 @@ android {
     applicationVariants.configureEach {
         outputs.configureEach {
             val variant = this as BaseVariantOutputImpl
-            val flavorSuffix = if (flavorName.isNullOrBlank()) "" else "-"
+            val flavorSuffix = flavorName.takeIf { !it.isNullOrBlank() }?.let { "-$it" } ?: ""
             variant.outputFileName = defaultConfig.applicationId + flavorSuffix + "-" + buildType.name + ".apk"
         }
     }
