@@ -1,5 +1,6 @@
 package com.tripleu.updater.prefs
 
+import com.tripleu.updater.BuildConfig
 import com.tripleu.updater.data.ui.MutedApp
 import com.tripleu.updater.data.ui.Screen
 import com.aurora.gplayapi.data.models.AuthData
@@ -9,34 +10,35 @@ import com.kryptoprefs.preferences.KryptoPrefs
 
 
 class Prefs(
-	prefs: KryptoPrefs,
-	@Suppress("UNUSED_PARAMETER") isAndroidTv: Boolean
+        prefs: KryptoPrefs,
+        @Suppress("UNUSED_PARAMETER") isAndroidTv: Boolean
 ): KryptoContext(prefs) {
-	val ignoredApps = json("ignoredApps", emptyList<String>(), true)
-	val mutedApps = json("mutedApps", emptyList<MutedApp>(), true)
-	val ignoredVersions = json("ignoredVersions", emptyList<Int>(), true)
-	val excludeSystem = boolean("excludeSystem", defValue = false, backed = true)
-	val excludeDisabled = boolean("excludeDisabled", defValue = true, backed = true)
-	val excludeStore = boolean("excludeStore", defValue = false, backed = true)
-	val portraitColumns = int("portraitColumns", 3, true)
-	val landscapeColumns = int("landscapeColumns", 6, true)
-	val playTextAnimations = boolean("playTextAnimations", defValue = false, backed = true)
-	val ignoreAlpha = boolean("ignoreAlpha", defValue = true, backed = true)
-	val ignoreBeta = boolean("ignoreBeta", defValue = true, backed = true)
-	val ignorePreRelease = boolean("ignorePreRelease", defValue = true, backed = true)
-	val useSafeStores = boolean("useSafeStores", defValue = true, backed = true)
-	val useGitHub = boolean("useGitHub", defValue = true, backed = true)
-	val useGitLab = boolean("useGitLab", defValue = true, backed = true)
-	val useFdroid = boolean("useFdroid", defValue = true, backed = true)
-	val useIzzy = boolean("useIzzy", defValue = true, backed = true)
-	val useAptoide = boolean("useAptoide", defValue = true, backed = true)
-	val useApkPure = boolean("useApkPure", defValue = true, backed = true)
-	val usePlay = boolean("usePlay", defValue = true, backed = true)
-	val enableAlarm = boolean("enableAlarm", defValue = false, backed = true)
-	val alarmHour = int("alarmHour", defValue = 12, backed = true)
-	val alarmFrequency = int("alarmFrequency", 2, backed = true)
-	val androidTvUi = boolean("androidTvUi", defValue = false, backed = true)
-	val rootInstall = boolean("rootInstall", defValue = true, backed = true)
+        val ignoredApps = json("ignoredApps", emptyList<String>(), true)
+        val mutedApps = json("mutedApps", emptyList<MutedApp>(), true)
+        val ignoredVersions = json("ignoredVersions", emptyList<Int>(), true)
+        val excludeSystem = boolean("excludeSystem", defValue = false, backed = true)
+        val excludeDisabled = boolean("excludeDisabled", defValue = true, backed = true)
+        val excludeStore = boolean("excludeStore", defValue = false, backed = true)
+        val portraitColumns = int("portraitColumns", 3, true)
+        val landscapeColumns = int("landscapeColumns", 6, true)
+        val playTextAnimations = boolean("playTextAnimations", defValue = false, backed = true)
+        val ignoreAlpha = boolean("ignoreAlpha", defValue = true, backed = true)
+        val ignoreBeta = boolean("ignoreBeta", defValue = true, backed = true)
+        val ignorePreRelease = boolean("ignorePreRelease", defValue = true, backed = true)
+        val useSafeStores = boolean("useSafeStores", defValue = true, backed = true)
+        private val enableThirdPartySourcesByDefault = !BuildConfig.TECHEAZ_PRIVILEGED_INSTALLER
+        val useGitHub = boolean("useGitHub", defValue = enableThirdPartySourcesByDefault, backed = true)
+        val useGitLab = boolean("useGitLab", defValue = enableThirdPartySourcesByDefault, backed = true)
+        val useFdroid = boolean("useFdroid", defValue = enableThirdPartySourcesByDefault, backed = true)
+        val useIzzy = boolean("useIzzy", defValue = enableThirdPartySourcesByDefault, backed = true)
+        val useAptoide = boolean("useAptoide", defValue = enableThirdPartySourcesByDefault, backed = true)
+        val useApkPure = boolean("useApkPure", defValue = enableThirdPartySourcesByDefault, backed = true)
+        val usePlay = boolean("usePlay", defValue = true, backed = true)
+        val enableAlarm = boolean("enableAlarm", defValue = false, backed = true)
+        val alarmHour = int("alarmHour", defValue = 12, backed = true)
+        val alarmFrequency = int("alarmFrequency", 2, backed = true)
+        val androidTvUi = boolean("androidTvUi", defValue = false, backed = true)
+        val rootInstall = boolean("rootInstall", defValue = true, backed = true)
 	val packageInstallerInstall = boolean("packageInstallerInstall", defValue = false, backed = true)
 	val suppressInstallModePrompt = boolean("suppressInstallModePrompt", defValue = true, backed = true)
 	val theme = int("theme", defValue = 0, backed = true)
@@ -46,6 +48,6 @@ class Prefs(
 	val blockedCertificateSources = json("blockedCertificateSources", emptyList<String>(), true)
 	val blockedInstallFailures = json("blockedInstallFailures", emptyList<String>(), true)
 	val privilegedInstallDefaultsApplied = boolean("privilegedInstallDefaultsApplied", defValue = false, backed = true)
-    val playSpoofRebootPending = boolean("playSpoofRebootPending", defValue = false, backed = true)
-    val playSpoofRebootHandled = boolean("playSpoofRebootHandled", defValue = false, backed = true)
+        val playSpoofRebootPending = boolean("playSpoofRebootPending", defValue = false, backed = true)
+        val playSpoofRebootHandled = boolean("playSpoofRebootHandled", defValue = false, backed = true)
 }

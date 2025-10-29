@@ -1,5 +1,6 @@
 package com.tripleu.updater.repository
 
+import com.tripleu.updater.BuildConfig
 import com.tripleu.updater.util.NoOpLog as Log
 import com.tripleu.updater.data.ui.AppUpdate
 import com.tripleu.updater.data.ui.blockKey
@@ -28,14 +29,15 @@ class UpdatesRepository(
         appsRepository.getApps().collect { result ->
             result.onSuccess { apps ->
                 val filtered = apps.filter { !it.ignored }
+                val privilegedFlavor = BuildConfig.TECHEAZ_PRIVILEGED_INSTALLER
                 val sources = mutableListOf<Flow<List<AppUpdate>>>()
-                if (prefs.useGitHub.get()) sources.add(gitHubRepository.updates(filtered))
-                if (prefs.useFdroid.get()) sources.add(fdroidRepository.updates(filtered))
-                if (prefs.useIzzy.get()) sources.add(izzyRepository.updates(filtered))
-                if (prefs.useAptoide.get()) sources.add(aptoideRepository.updates(filtered))
-                if (prefs.useApkPure.get()) sources.add(apkPureRepository.updates(filtered))
-                if (prefs.useGitLab.get()) sources.add(gitLabRepository.updates(filtered))
-                if (prefs.usePlay.get()) sources.add(playRepository.updates(filtered))
+                if (!privilegedFlavor && prefs.useGitHub.get()) sources.add(gitHubRepository.updates(filtered))
+                if (!privilegedFlavor && prefs.useFdroid.get()) sources.add(fdroidRepository.updates(filtered))
+                if (!privilegedFlavor && prefs.useIzzy.get()) sources.add(izzyRepository.updates(filtered))
+                if (!privilegedFlavor && prefs.useAptoide.get()) sources.add(aptoideRepository.updates(filtered))
+                if (!privilegedFlavor && prefs.useApkPure.get()) sources.add(apkPureRepository.updates(filtered))
+                if (!privilegedFlavor && prefs.useGitLab.get()) sources.add(gitLabRepository.updates(filtered))
+                if (prefs.usePlay.get() || privilegedFlavor) sources.add(playRepository.updates(filtered))
                 if (customFeedRepository.isEnabled) sources.add(customFeedRepository.updates(filtered))
 
                 if (sources.isNotEmpty()) {
@@ -45,6 +47,7 @@ class UpdatesRepository(
                             val blockedInstallFailures = prefs.blockedInstallFailures.get().toHashSet()
                             val flattened = updates
                                 .flatMap { it }
+                                .filterNot { it.isBlacklisted() }
                                 .filterNot {
                                     val key = it.blockKey()
                                     blockedCertificates.contains(key) || blockedInstallFailures.contains(key)

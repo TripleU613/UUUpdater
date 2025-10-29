@@ -34,12 +34,13 @@ class SettingsViewModel(
 
 	val state = MutableStateFlow<SettingsUiState>(SettingsUiState.Settings)
 
-	init {
+        init {
         applyPrivilegedDefaultsIfNeeded()
-		viewModelScope.launch(Dispatchers.IO) {
-			sanitizeInstallPreferences()
-		}
-	}
+        enforceSupportedSourcesForPrivilegedFlavor()
+                viewModelScope.launch(Dispatchers.IO) {
+                        sanitizeInstallPreferences()
+                }
+        }
 
 	fun setPortraitColumns(n: Int) = prefs.portraitColumns.put(n)
 	fun getPortraitColumns() = prefs.portraitColumns.get()
@@ -53,20 +54,41 @@ class SettingsViewModel(
 	fun getIgnoreBeta() = prefs.ignoreBeta.get()
 	fun setIgnorePreRelease(b: Boolean) = prefs.ignorePreRelease.put(b)
 	fun getIgnorePreRelease() = prefs.ignorePreRelease.get()
-	fun getUseFdroid() = prefs.useFdroid.get()
-	fun setUseFdroid(b: Boolean) = prefs.useFdroid.put(b)
-	fun getUseIzzy() = prefs.useIzzy.get()
-	fun setUseIzzy(b: Boolean) = prefs.useIzzy.put(b)
-	fun getUseGitHub() = prefs.useGitHub.get()
-	fun setUseGitHub(b: Boolean) = prefs.useGitHub.put(b)
-	fun getUseGitLab() = prefs.useGitLab.get()
-	fun setUseGitLab(b: Boolean) = prefs.useGitLab.put(b)
-	fun getUseAptoide() = prefs.useAptoide.get()
-	fun setUseAptoide(b: Boolean) = prefs.useAptoide.put(b)
-	fun getUseApkPure() = prefs.useApkPure.get()
-	fun setUseApkPure(b: Boolean) = prefs.useApkPure.put(b)
-	fun getUsePlay() = prefs.usePlay.get()
-	fun setUsePlay(b: Boolean) = prefs.usePlay.put(b)
+        fun getUseFdroid() = prefs.useFdroid.get()
+        fun setUseFdroid(b: Boolean) {
+                if (BuildConfig.TECHEAZ_PRIVILEGED_INSTALLER) return
+                prefs.useFdroid.put(b)
+        }
+        fun getUseIzzy() = prefs.useIzzy.get()
+        fun setUseIzzy(b: Boolean) {
+                if (BuildConfig.TECHEAZ_PRIVILEGED_INSTALLER) return
+                prefs.useIzzy.put(b)
+        }
+        fun getUseGitHub() = prefs.useGitHub.get()
+        fun setUseGitHub(b: Boolean) {
+                if (BuildConfig.TECHEAZ_PRIVILEGED_INSTALLER) return
+                prefs.useGitHub.put(b)
+        }
+        fun getUseGitLab() = prefs.useGitLab.get()
+        fun setUseGitLab(b: Boolean) {
+                if (BuildConfig.TECHEAZ_PRIVILEGED_INSTALLER) return
+                prefs.useGitLab.put(b)
+        }
+        fun getUseAptoide() = prefs.useAptoide.get()
+        fun setUseAptoide(b: Boolean) {
+                if (BuildConfig.TECHEAZ_PRIVILEGED_INSTALLER) return
+                prefs.useAptoide.put(b)
+        }
+        fun getUseApkPure() = prefs.useApkPure.get()
+        fun setUseApkPure(b: Boolean) {
+                if (BuildConfig.TECHEAZ_PRIVILEGED_INSTALLER) return
+                prefs.useApkPure.put(b)
+        }
+        fun getUsePlay() = prefs.usePlay.get()
+        fun setUsePlay(b: Boolean) {
+                if (BuildConfig.TECHEAZ_PRIVILEGED_INSTALLER && !b) return
+                prefs.usePlay.put(b)
+        }
 	fun getAndroidTvUi() = prefs.androidTvUi.get()
 	fun setAndroidTvUi(b: Boolean) = prefs.androidTvUi.put(b)
 	fun getEnableAlarm() = prefs.enableAlarm.get()
@@ -165,6 +187,26 @@ class SettingsViewModel(
             prefs.rootInstall.put(false)
             prefs.packageInstallerInstall.put(false)
             prefs.privilegedInstallDefaultsApplied.put(true)
+        }
+    }
+
+    private fun enforceSupportedSourcesForPrivilegedFlavor() {
+        if (!BuildConfig.TECHEAZ_PRIVILEGED_INSTALLER) return
+        val unsupportedSources = listOf(
+            prefs.useGitHub,
+            prefs.useGitLab,
+            prefs.useFdroid,
+            prefs.useIzzy,
+            prefs.useAptoide,
+            prefs.useApkPure
+        )
+        unsupportedSources.forEach { preference ->
+            if (preference.get()) {
+                preference.put(false)
+            }
+        }
+        if (!prefs.usePlay.get()) {
+            prefs.usePlay.put(true)
         }
     }
 

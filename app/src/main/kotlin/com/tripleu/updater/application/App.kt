@@ -8,6 +8,7 @@ import com.tripleu.updater.di.mainModule
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.tripleu.updater.prefs.Prefs
+import com.tripleu.updater.util.Downloader
 import com.tripleu.updater.util.play.PlayDeviceSpoofManager
 import okhttp3.OkHttpClient
 import org.koin.android.ext.koin.androidContext
@@ -23,22 +24,24 @@ class App : Application(), ImageLoaderFactory, KoinComponent {
 
 		FirebaseApp.initializeApp(this)
 
-		startKoin {
-			androidLogger()
-			androidContext(this@App)
-			modules(mainModule)
-		}
+                startKoin {
+                        androidLogger()
+                        androidContext(this@App)
+                        modules(mainModule)
+                }
 
-        PlayDeviceSpoofManager.initialize(this)
+                get<Downloader>().clearStaleDownloads()
 
-        if (BuildConfig.TECHEAZ_PRIVILEGED_INSTALLER) {
-            val prefs: Prefs = get()
-            val signedIn = runCatching { FirebaseAuth.getInstance().currentUser }.getOrNull() != null
-            if (signedIn) {
-                prefs.playSpoofRebootPending.put(true)
-                prefs.playSpoofRebootHandled.put(false)
-            }
-        }
+                PlayDeviceSpoofManager.initialize(this)
+
+                if (BuildConfig.TECHEAZ_PRIVILEGED_INSTALLER) {
+                        val prefs: Prefs = get()
+                        val signedIn = runCatching { FirebaseAuth.getInstance().currentUser }.getOrNull() != null
+                        if (signedIn) {
+                                prefs.playSpoofRebootPending.put(true)
+                                prefs.playSpoofRebootHandled.put(false)
+                        }
+                }
 	}
 
 	override fun newImageLoader() = ImageLoader

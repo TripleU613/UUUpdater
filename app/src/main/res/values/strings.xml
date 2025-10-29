@@ -48,6 +48,8 @@
     <string name="open_drawer_cd">Open drawer</string>
     <string name="common_yes">Yes</string>
     <string name="common_no">No</string>
+    <string name="mute_confirmation_title">Mute app?</string>
+    <string name="mute_confirmation_message">Do you want to mute updates from %1$s?</string>
     <string name="slider_decrease">Decrease %1$s</string>
     <string name="slider_increase">Increase %1$s</string>
 

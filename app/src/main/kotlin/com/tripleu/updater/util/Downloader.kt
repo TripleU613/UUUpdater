@@ -149,4 +149,18 @@ class Downloader(
 
     private fun downloadRequest(url: String) = Request.Builder().url(url).build()
 
+    fun clearStaleDownloads() {
+        dir.listFiles()?.forEach { file ->
+            runCatching {
+                if (file.isDirectory) {
+                    file.deleteRecursively()
+                } else {
+                    file.delete()
+                }
+            }.onFailure {
+                Log.w("Downloader", "Failed to delete stale download ${file.absolutePath}", it)
+            }
+        }
+    }
+
 }

@@ -1,5 +1,6 @@
 package com.tripleu.updater.repository
 
+import com.tripleu.updater.BuildConfig
 import com.tripleu.updater.util.NoOpLog as Log
 import com.tripleu.updater.data.ui.AppUpdate
 import com.tripleu.updater.data.ui.blockKey
@@ -23,14 +24,15 @@ class SearchRepository(
 ) {
 
     fun search(text: String) = flow {
+        val privilegedFlavor = BuildConfig.TECHEAZ_PRIVILEGED_INSTALLER
         val sources = mutableListOf<Flow<Result<List<AppUpdate>>>>()
-        if (prefs.useFdroid.get()) sources.add(fdroidRepository.search(text))
-        if (prefs.useIzzy.get()) sources.add(izzyRepository.search(text))
-        if (prefs.useAptoide.get()) sources.add(aptoideRepository.search(text))
-        if (prefs.useGitHub.get()) sources.add(gitHubRepository.search(text))
-        if (prefs.useApkPure.get()) sources.add(apkPureRepository.search(text))
-        if (prefs.useGitLab.get()) sources.add(gitLabRepository.search(text))
-        if (prefs.usePlay.get()) sources.add(playRepository.search(text))
+        if (!privilegedFlavor && prefs.useFdroid.get()) sources.add(fdroidRepository.search(text))
+        if (!privilegedFlavor && prefs.useIzzy.get()) sources.add(izzyRepository.search(text))
+        if (!privilegedFlavor && prefs.useAptoide.get()) sources.add(aptoideRepository.search(text))
+        if (!privilegedFlavor && prefs.useGitHub.get()) sources.add(gitHubRepository.search(text))
+        if (!privilegedFlavor && prefs.useApkPure.get()) sources.add(apkPureRepository.search(text))
+        if (!privilegedFlavor && prefs.useGitLab.get()) sources.add(gitLabRepository.search(text))
+        if (prefs.usePlay.get() || privilegedFlavor) sources.add(playRepository.search(text))
         if (customFeedRepository.isEnabled) sources.add(customFeedRepository.search(text))
 
         if (sources.isNotEmpty()) {
@@ -39,6 +41,7 @@ class SearchRepository(
                 val blockedInstallFailures = prefs.blockedInstallFailures.get().toHashSet()
                 val result = updates.filter { it.isSuccess }.mapNotNull { it.getOrNull() }
                 val flattened = result.flatten()
+                    .filterNot { it.isBlacklisted() }
                     .filterNot {
                         val key = it.blockKey()
                         blockedCertificates.contains(key) || blockedInstallFailures.contains(key)
