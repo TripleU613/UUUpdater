@@ -288,62 +288,64 @@ private fun UpdatesDrawerContent(
                 thickness = DividerDefaults.Thickness,
                 color = DividerDefaults.color
             )
-            Spacer(modifier = Modifier.height(16.dp))
-			Text(
-				text = stringResource(R.string.settings_sources),
-				style = MaterialTheme.typography.titleMedium,
-				modifier = Modifier.padding(horizontal = 16.dp)
-			)
-			Spacer(modifier = Modifier.height(8.dp))
-			SwitchSetting(
-				getValue = { settingsViewModel.getUseGitHub() },
-				setValue = { settingsViewModel.setUseGitHub(it) },
-				text = stringResource(R.string.source_github),
-				icon = R.drawable.ic_github
-			)
-			SwitchSetting(
-				getValue = { settingsViewModel.getUseGitLab() },
-				setValue = { settingsViewModel.setUseGitLab(it) },
-				text = stringResource(R.string.source_gitlab),
-				icon = R.drawable.ic_gitlab
-			)
-			SwitchSetting(
-				getValue = { settingsViewModel.getUseFdroid() },
-				setValue = { settingsViewModel.setUseFdroid(it) },
-				text = stringResource(R.string.source_fdroid),
-				icon = R.drawable.ic_fdroid
-			)
-			SwitchSetting(
-				getValue = { settingsViewModel.getUseIzzy() },
-				setValue = { settingsViewModel.setUseIzzy(it) },
-				text = stringResource(R.string.source_izzy),
-				icon = R.drawable.ic_izzy
-			)
-			SwitchSetting(
-				getValue = { settingsViewModel.getUseAptoide() },
-				setValue = { settingsViewModel.setUseAptoide(it) },
-				text = stringResource(R.string.source_aptoide),
-				icon = R.drawable.ic_aptoide
-			)
-			SwitchSetting(
-				getValue = { settingsViewModel.getUseApkPure() },
-				setValue = { settingsViewModel.setUseApkPure(it) },
-				text = stringResource(R.string.source_apkpure),
-				icon = R.drawable.ic_apkpure
-			)
-			SwitchSetting(
-				getValue = { settingsViewModel.getUsePlay() },
-				setValue = { settingsViewModel.setUsePlay(it) },
-				text = stringResource(R.string.source_play) + " (Alpha)",
-				icon = R.drawable.ic_play
-			)
-			Spacer(modifier = Modifier.height(16.dp))
-			HorizontalDivider(
-				modifier = Modifier.padding(horizontal = 16.dp),
-				thickness = DividerDefaults.Thickness,
-				color = DividerDefaults.color
-			)
-			Spacer(modifier = Modifier.height(16.dp))
+            if (!isPrivilegedFlavor) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = stringResource(R.string.settings_sources),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                SwitchSetting(
+                    getValue = { settingsViewModel.getUseGitHub() },
+                    setValue = { settingsViewModel.setUseGitHub(it) },
+                    text = stringResource(R.string.source_github),
+                    icon = R.drawable.ic_github
+                )
+                SwitchSetting(
+                    getValue = { settingsViewModel.getUseGitLab() },
+                    setValue = { settingsViewModel.setUseGitLab(it) },
+                    text = stringResource(R.string.source_gitlab),
+                    icon = R.drawable.ic_gitlab
+                )
+                SwitchSetting(
+                    getValue = { settingsViewModel.getUseFdroid() },
+                    setValue = { settingsViewModel.setUseFdroid(it) },
+                    text = stringResource(R.string.source_fdroid),
+                    icon = R.drawable.ic_fdroid
+                )
+                SwitchSetting(
+                    getValue = { settingsViewModel.getUseIzzy() },
+                    setValue = { settingsViewModel.setUseIzzy(it) },
+                    text = stringResource(R.string.source_izzy),
+                    icon = R.drawable.ic_izzy
+                )
+                SwitchSetting(
+                    getValue = { settingsViewModel.getUseAptoide() },
+                    setValue = { settingsViewModel.setUseAptoide(it) },
+                    text = stringResource(R.string.source_aptoide),
+                    icon = R.drawable.ic_aptoide
+                )
+                SwitchSetting(
+                    getValue = { settingsViewModel.getUseApkPure() },
+                    setValue = { settingsViewModel.setUseApkPure(it) },
+                    text = stringResource(R.string.source_apkpure),
+                    icon = R.drawable.ic_apkpure
+                )
+                SwitchSetting(
+                    getValue = { settingsViewModel.getUsePlay() },
+                    setValue = { settingsViewModel.setUsePlay(it) },
+                    text = stringResource(R.string.source_play) + " (Alpha)",
+                    icon = R.drawable.ic_play
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    thickness = DividerDefaults.Thickness,
+                    color = DividerDefaults.color
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+            }
 			Text(
 				text = stringResource(R.string.settings_options),
 				style = MaterialTheme.typography.titleMedium,
@@ -767,20 +769,48 @@ fun ListLayout(
 	modifier = Modifier.fillMaxSize(),
     contentPadding = PaddingValues(vertical = 8.dp)
 ) {
-	items(
+        val coroutineScope = rememberCoroutineScope()
+        items(
         items = updates,
         key = { it.id }
     ) { update ->
+        var showMuteDialog by remember { mutableStateOf(false) }
+        val label = update.name.ifBlank { update.packageName }
         val dismissState = rememberSwipeToDismissBoxState(
             confirmValueChange = { value ->
                 if (value == SwipeToDismissBoxValue.EndToStart) {
-                    onMute(update)
-                    true
-                } else {
-                    false
+                    showMuteDialog = true
                 }
+                false
             }
         )
+        if (showMuteDialog) {
+            AlertDialog(
+                onDismissRequest = {
+                    showMuteDialog = false
+                    coroutineScope.launch { dismissState.snapTo(SwipeToDismissBoxValue.Settled) }
+                },
+                title = { Text(text = stringResource(R.string.mute_confirmation_title)) },
+                text = { Text(text = stringResource(R.string.mute_confirmation_message, label)) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showMuteDialog = false
+                        onMute(update)
+                        coroutineScope.launch { dismissState.snapTo(SwipeToDismissBoxValue.Settled) }
+                    }) {
+                        Text(text = stringResource(R.string.common_yes))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        showMuteDialog = false
+                        coroutineScope.launch { dismissState.snapTo(SwipeToDismissBoxValue.Settled) }
+                    }) {
+                        Text(text = stringResource(R.string.common_no))
+                    }
+                }
+            )
+        }
         SwipeToDismissBox(
             modifier = Modifier.padding(vertical = 4.dp),
             state = dismissState,
