@@ -761,118 +761,120 @@ fun TvGrid(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListLayout(
-	viewModel: UpdatesViewModel,
-	updates: List<AppUpdate>,
-	handler: UriHandler,
+    viewModel: UpdatesViewModel,
+    updates: List<AppUpdate>,
+    handler: UriHandler,
     onMute: (AppUpdate) -> Unit
-) = LazyColumn(
-	modifier = Modifier.fillMaxSize(),
-    contentPadding = PaddingValues(vertical = 8.dp)
 ) {
-        val coroutineScope = rememberCoroutineScope()
+    val coroutineScope = rememberCoroutineScope()
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(vertical = 8.dp)
+    ) {
         items(
-        items = updates,
-        key = { it.id }
-    ) { update ->
-        var showMuteDialog by remember { mutableStateOf(false) }
-        val label = update.name.ifBlank { update.packageName }
-        val dismissState = rememberSwipeToDismissBoxState(
-            confirmValueChange = { value ->
-                if (value == SwipeToDismissBoxValue.EndToStart) {
-                    showMuteDialog = true
-                }
-                false
-            }
-        )
-        if (showMuteDialog) {
-            AlertDialog(
-                onDismissRequest = {
-                    showMuteDialog = false
-                    coroutineScope.launch { dismissState.snapTo(SwipeToDismissBoxValue.Settled) }
-                },
-                title = { Text(text = stringResource(R.string.mute_confirmation_title)) },
-                text = { Text(text = stringResource(R.string.mute_confirmation_message, label)) },
-                confirmButton = {
-                    TextButton(onClick = {
-                        showMuteDialog = false
-                        onMute(update)
-                        coroutineScope.launch { dismissState.snapTo(SwipeToDismissBoxValue.Settled) }
-                    }) {
-                        Text(text = stringResource(R.string.common_yes))
+            items = updates,
+            key = { it.id }
+        ) { update ->
+            var showMuteDialog by remember { mutableStateOf(false) }
+            val label = update.name.ifBlank { update.packageName }
+            val dismissState = rememberSwipeToDismissBoxState(
+                confirmValueChange = { value ->
+                    if (value == SwipeToDismissBoxValue.EndToStart) {
+                        showMuteDialog = true
                     }
-                },
-                dismissButton = {
-                    TextButton(onClick = {
-                        showMuteDialog = false
-                        coroutineScope.launch { dismissState.snapTo(SwipeToDismissBoxValue.Settled) }
-                    }) {
-                        Text(text = stringResource(R.string.common_no))
-                    }
+                    false
                 }
             )
-        }
-        SwipeToDismissBox(
-            modifier = Modifier.padding(vertical = 4.dp),
-            state = dismissState,
-            enableDismissFromStartToEnd = false,
-            backgroundContent = {
-                val dangerColor = MaterialTheme.colorScheme.error
-                BoxWithConstraints(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    val direction = dismissState.dismissDirection
-                    if (direction == SwipeToDismissBoxValue.EndToStart) {
-                        val offset = runCatching { dismissState.requireOffset() }.getOrNull()
-                        val fraction = if (offset != null && !offset.isNaN()) {
-                            val widthPx = constraints.maxWidth
-                            if (widthPx > 0) {
-                                (abs(offset) / widthPx.toFloat()).coerceIn(0f, 1f)
+            if (showMuteDialog) {
+                AlertDialog(
+                    onDismissRequest = {
+                        showMuteDialog = false
+                        coroutineScope.launch { dismissState.snapTo(SwipeToDismissBoxValue.Settled) }
+                    },
+                    title = { Text(text = stringResource(R.string.mute_confirmation_title)) },
+                    text = { Text(text = stringResource(R.string.mute_confirmation_message, label)) },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            showMuteDialog = false
+                            onMute(update)
+                            coroutineScope.launch { dismissState.snapTo(SwipeToDismissBoxValue.Settled) }
+                        }) {
+                            Text(text = stringResource(R.string.common_yes))
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = {
+                            showMuteDialog = false
+                            coroutineScope.launch { dismissState.snapTo(SwipeToDismissBoxValue.Settled) }
+                        }) {
+                            Text(text = stringResource(R.string.common_no))
+                        }
+                    }
+                )
+            }
+            SwipeToDismissBox(
+                modifier = Modifier.padding(vertical = 4.dp),
+                state = dismissState,
+                enableDismissFromStartToEnd = false,
+                backgroundContent = {
+                    val dangerColor = MaterialTheme.colorScheme.error
+                    BoxWithConstraints(
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        val direction = dismissState.dismissDirection
+                        if (direction == SwipeToDismissBoxValue.EndToStart) {
+                            val offset = runCatching { dismissState.requireOffset() }.getOrNull()
+                            val fraction = if (offset != null && !offset.isNaN()) {
+                                val widthPx = constraints.maxWidth
+                                if (widthPx > 0) {
+                                    (abs(offset) / widthPx.toFloat()).coerceIn(0f, 1f)
+                                } else {
+                                    0f
+                                }
                             } else {
                                 0f
                             }
-                        } else {
-                            0f
-                        }
-                        if (fraction > 0f) {
-                            val revealWidth: Dp = maxWidth * fraction
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxHeight()
-                                    .width(revealWidth)
-                                    .align(Alignment.CenterEnd)
-                                    .background(dangerColor)
-                                    .padding(horizontal = 24.dp),
-                                contentAlignment = Alignment.CenterEnd
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            if (fraction > 0f) {
+                                val revealWidth: Dp = maxWidth * fraction
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxHeight()
+                                        .width(revealWidth)
+                                        .align(Alignment.CenterEnd)
+                                        .background(dangerColor)
+                                        .padding(horizontal = 24.dp),
+                                    contentAlignment = Alignment.CenterEnd
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Filled.VolumeOff,
-                                        contentDescription = null,
-                                        tint = Color.White,
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                    Text(
-                                        text = stringResource(R.string.action_mute),
-                                        style = MaterialTheme.typography.titleSmall,
-                                        color = Color.White,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.VolumeOff,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                        Text(
+                                            text = stringResource(R.string.action_mute),
+                                            style = MaterialTheme.typography.titleSmall,
+                                            color = Color.White,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
                 }
+            ) {
+                UpdateCard(
+                    appUpdate = update,
+                    onActionClick = { viewModel.install(update, handler) }
+                )
             }
-        ) {
-            UpdateCard(
-                appUpdate = update,
-                onActionClick = { viewModel.install(update, handler) }
-            )
         }
-	}
+    }
 }
 
 @Composable
