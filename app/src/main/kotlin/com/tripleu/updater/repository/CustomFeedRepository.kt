@@ -87,7 +87,9 @@ class CustomFeedRepository(
             }.onFailure { error ->
                 log(Log.ERROR, "Failed to build custom feed update for ${app.packageName}: ${error.message}", error)
             }.getOrNull()
-        }
+        }.toMutableList()
+
+        maybeAddSelfUpdate(manifest, installed, updates)
 
         log(Log.INFO, "Custom feed produced ${updates.size} candidate updates.")
         emit(updates)
@@ -157,6 +159,39 @@ class CustomFeedRepository(
     }.catch { error ->
         log(Log.ERROR, "Error searching custom feed: ${error::class.java.name} - ${error.message}", error)
         emit(Result.failure(error))
+    }
+
+    private fun maybeAddSelfUpdate(
+        manifest: Map<String, CustomFeedEntry>,
+        installed: List<AppInstalled>,
+        updates: MutableList<AppUpdate>
+    ) {
+        val selfPackage = BuildConfig.APPLICATION_ID
+        if (updates.any { it.packageName == selfPackage }) {
+            return
+        }
+
+        val manifestEntry = manifest[selfPackage] ?: run {
+            val suffix = ".${BuildConfig.FLAVOR}".takeIf { BuildConfig.FLAVOR.isNotBlank() }
+            if (!suffix.isNullOrEmpty() && selfPackage.endsWith(suffix)) {
+                manifest[selfPackage.removeSuffix(suffix)]
+            } else {
+                null
+            }
+        } ?: return
+
+        val installedSelf = installed.firstOrNull { it.packageName == selfPackage }
+        val update = installedSelf?.let { buildUpdateForInstalled(it, manifestEntry) }
+            ?: buildUpdateForSearch(
+                packageName = selfPackage,
+                entry = manifestEntry,
+                displayName = manifestEntry.name ?: installedSelf?.name ?: selfPackage
+            )
+
+        if (update != null && updates.none { it.packageName == update.packageName && it.versionCode == update.versionCode }) {
+            updates.add(update)
+            log(Log.DEBUG, "Added self update candidate from custom feed for $selfPackage")
+        }
     }
 
     private suspend fun fetchManifest(): Map<String, CustomFeedEntry>? = withContext(Dispatchers.IO) {
