@@ -43,6 +43,7 @@ import kotlin.math.log10
 import kotlin.math.pow
 import androidx.compose.ui.unit.sp
 import com.tripleu.updater.R
+import com.tripleu.updater.BuildConfig
 import com.tripleu.updater.data.ui.AppPackaging
 import com.tripleu.updater.data.ui.AppUpdate
 import com.tripleu.updater.data.ui.InstallStage
@@ -107,45 +108,59 @@ fun UpdateCard(
                     overflow = TextOverflow.Ellipsis
                 )
 
-                // Source with color coding
-                val sourceColor = when (appUpdate.source.name) {
-                    "GitHub" -> Color(0xFF9C27B0)      // Purple
-                    "F-Droid (Main)", "F-Droid (Izzy)" -> Color(0xFF2196F3)  // Blue
-                    "Aptoide" -> Color(0xFFFF6F00)     // Dark orange
-                    "ApkPure" -> Color(0xFF4CAF50)     // Green
-                    "GitLab" -> Color(0xFFFC6D26)      // Orange-red
-                    "Play" -> Color(0xFFEA4335)        // Red
-                    "Techeaz" -> Color(0xFF1E88E5)     // Blue highlight for Techeaz feed
-                    else -> MaterialTheme.colorScheme.onSurfaceVariant
-                }
+                val showSourceDetails = !BuildConfig.TECHEAZ_PRIVILEGED_INSTALLER
 
-                if (!expanded) {
-                    // Collapsed: Source \u2022 package name (can be cut off)
-                    Row(
-                        modifier = Modifier.padding(top = 2.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
+                if (showSourceDetails) {
+                    // Source with color coding
+                    val sourceColor = when (appUpdate.source.name) {
+                        "GitHub" -> Color(0xFF9C27B0)      // Purple
+                        "F-Droid (Main)", "F-Droid (Izzy)" -> Color(0xFF2196F3)  // Blue
+                        "Aptoide" -> Color(0xFFFF6F00)     // Dark orange
+                        "ApkPure" -> Color(0xFF4CAF50)     // Green
+                        "GitLab" -> Color(0xFFFC6D26)      // Orange-red
+                        "Play" -> Color(0xFFEA4335)        // Red
+                        "Techeaz" -> Color(0xFF1E88E5)     // Blue highlight for Techeaz feed
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+
+                    if (!expanded) {
+                        // Collapsed: Source • package name (can be cut off)
+                        Row(
+                            modifier = Modifier.padding(top = 2.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = appUpdate.source.name,
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                                color = sourceColor,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "• ${appUpdate.packageName}",
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    } else {
+                        // Expanded: Source only at top
                         Text(
                             text = appUpdate.source.name,
                             style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
                             color = sourceColor,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = "• ${appUpdate.packageName}",
-                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            modifier = Modifier.padding(top = 2.dp)
                         )
                     }
-                } else {
-                    // Expanded: Source only at top
+                } else if (!expanded) {
+                    // Collapsed techeaz flavor: only show package name snippet
                     Text(
-                        text = appUpdate.source.name,
+                        text = appUpdate.packageName,
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                        color = sourceColor,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(top = 2.dp)
                     )
                 }

@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.tripleu.updater.BuildConfig
 import com.tripleu.updater.R
 import com.tripleu.updater.data.ui.AppUpdate
 import com.tripleu.updater.data.ui.InstallStage
@@ -73,11 +74,17 @@ fun ExcludeDisabledIcon(exclude: Boolean) = ExcludeIcon(
 )
 
 @Composable
-fun SourceIcon(source: Source, modifier: Modifier = Modifier) = Icon(
-    painterResource(id = source.resourceId),
-    source.name,
-    modifier
-)
+fun SourceIcon(source: Source, modifier: Modifier = Modifier) {
+    if (BuildConfig.TECHEAZ_PRIVILEGED_INSTALLER) {
+        return
+    }
+
+    Icon(
+        painterResource(id = source.resourceId),
+        source.name,
+        modifier
+    )
+}
 
 @Composable
 fun IgnoreIcon(ignored: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) = Icon(

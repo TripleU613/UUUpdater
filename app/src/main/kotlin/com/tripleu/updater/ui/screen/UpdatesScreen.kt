@@ -359,39 +359,37 @@ private fun UpdatesDrawerContent(
                     text = stringResource(R.string.root_install),
                     icon = R.drawable.ic_root
                 )
-            }
-            SwitchSetting(
-                getValue = { settingsViewModel.getPackageInstallerInstall() },
-                setValue = { settingsViewModel.setPackageInstallerInstall(it) },
-                text = stringResource(R.string.package_installer_install),
-                icon = R.drawable.ic_install
-            )
-            if (!isPrivilegedFlavor) {
+                SwitchSetting(
+                    getValue = { settingsViewModel.getPackageInstallerInstall() },
+                    setValue = { settingsViewModel.setPackageInstallerInstall(it) },
+                    text = stringResource(R.string.package_installer_install),
+                    icon = R.drawable.ic_install
+                )
                 SwitchSetting(
                     getValue = { !settingsViewModel.getInstallModePromptSuppressed() },
                     setValue = { settingsViewModel.setInstallModePromptSuppressed(!it) },
                     text = stringResource(R.string.install_mode_prompt),
                     icon = R.drawable.ic_info
                 )
+                SwitchSetting(
+                    getValue = { settingsViewModel.getIgnoreAlpha() },
+                    setValue = { settingsViewModel.setIgnoreAlpha(it) },
+                    text = stringResource(R.string.ignore_alpha),
+                    icon = R.drawable.ic_alpha
+                )
+                SwitchSetting(
+                    getValue = { settingsViewModel.getIgnoreBeta() },
+                    setValue = { settingsViewModel.setIgnoreBeta(it) },
+                    text = stringResource(R.string.ignore_beta),
+                    icon = R.drawable.ic_beta
+                )
+                SwitchSetting(
+                    getValue = { settingsViewModel.getIgnorePreRelease() },
+                    setValue = { settingsViewModel.setIgnorePreRelease(it) },
+                    text = stringResource(R.string.ignore_preRelease),
+                    icon = R.drawable.ic_pre_release
+                )
             }
-			SwitchSetting(
-				getValue = { settingsViewModel.getIgnoreAlpha() },
-				setValue = { settingsViewModel.setIgnoreAlpha(it) },
-				text = stringResource(R.string.ignore_alpha),
-				icon = R.drawable.ic_alpha
-			)
-			SwitchSetting(
-				getValue = { settingsViewModel.getIgnoreBeta() },
-				setValue = { settingsViewModel.setIgnoreBeta(it) },
-				text = stringResource(R.string.ignore_beta),
-				icon = R.drawable.ic_beta
-			)
-			SwitchSetting(
-				getValue = { settingsViewModel.getIgnorePreRelease() },
-				setValue = { settingsViewModel.setIgnorePreRelease(it) },
-				text = stringResource(R.string.ignore_preRelease),
-				icon = R.drawable.ic_pre_release
-			)
 			Spacer(modifier = Modifier.height(24.dp))
             HorizontalDivider(
                 modifier = Modifier.padding(horizontal = 16.dp),
