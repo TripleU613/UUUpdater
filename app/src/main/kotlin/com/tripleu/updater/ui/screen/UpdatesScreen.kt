@@ -220,9 +220,9 @@ private fun UpdatesDrawerContent(
 	ModalDrawerSheet {
 		Column(
 			modifier = Modifier
-				.fillMaxWidth()
-				.verticalScroll(rememberScrollState())
-				.padding(top = 24.dp, bottom = 24.dp)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(top = 24.dp, bottom = 24.dp)
 		) {
             val flavorLabel = if (isPrivilegedFlavor) {
                 stringResource(R.string.settings_header_techeaz_variant)
