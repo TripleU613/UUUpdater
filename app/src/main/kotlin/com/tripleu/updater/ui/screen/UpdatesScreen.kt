@@ -346,13 +346,13 @@ private fun UpdatesDrawerContent(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
             }
-			Text(
-				text = stringResource(R.string.settings_options),
-				style = MaterialTheme.typography.titleMedium,
-				modifier = Modifier.padding(horizontal = 16.dp)
-			)
-			Spacer(modifier = Modifier.height(8.dp))
             if (!isPrivilegedFlavor) {
+                Text(
+                    text = stringResource(R.string.settings_options),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
                 SwitchSetting(
                     getValue = { settingsViewModel.getRootInstall() },
                     setValue = { settingsViewModel.setRootInstall(it) },
@@ -477,7 +477,6 @@ fun UpdatesTopBar(
 ) {
     var isSearchActive by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
-    var showUpdateAllDialog by remember { mutableStateOf(false) }
     var currentTheme by remember { mutableIntStateOf(settingsViewModel.getTheme()) }
     val iconButtonModifier = Modifier.size(36.dp)
 
@@ -548,7 +547,7 @@ fun UpdatesTopBar(
                 }
 
                 IconButton(
-                    onClick = { showUpdateAllDialog = true },
+                    onClick = onUpdateAll,
                     modifier = iconButtonModifier,
                     enabled = !isBulkInstalling
                 ) {
@@ -627,36 +626,6 @@ fun UpdatesTopBar(
         )
     }
 
-    if (showUpdateAllDialog) {
-        AlertDialog(
-            onDismissRequest = { showUpdateAllDialog = false },
-            title = {
-                Text(
-                    stringResource(R.string.install_all_updates_title),
-                    style = MaterialTheme.typography.headlineSmall
-                )
-            },
-            text = {
-                Text(
-                    stringResource(R.string.install_all_updates_message),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    onUpdateAll()
-                    showUpdateAllDialog = false
-                }) {
-                    Text(stringResource(R.string.common_yes))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showUpdateAllDialog = false }) {
-                    Text(stringResource(R.string.common_no))
-                }
-            }
-        )
-    }
 }
 
 @Composable
