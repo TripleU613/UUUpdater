@@ -105,6 +105,13 @@ abstract class InstallViewModel(
         activeInstalls.remove(id)
         blockedInstallIds.remove(id)
         installProgress.remove(id)
+        cleanupDownloadCacheIfIdle()
+    }
+
+    private fun cleanupDownloadCacheIfIdle() {
+        if (activeInstalls.isEmpty()) {
+            downloader.clearStaleDownloads()
+        }
     }
 
     protected fun consumeBlockedInstall(id: Int): Boolean = blockedInstallIds.remove(id)
