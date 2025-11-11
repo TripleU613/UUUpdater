@@ -48,11 +48,11 @@ android {
         minSdk = 23
         //noinspection OldTargetApi
         targetSdk = 35
-        versionCode = 52
+        versionCode = 53
         versionName = when {
             versionNameOverride.isNotEmpty() -> versionNameOverride
             buildNumber.isNotEmpty() -> "0.0."
-            else -> "3.0.3"
+            else -> "3.0.4"
         }
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
