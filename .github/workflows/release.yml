@@ -24,7 +24,7 @@ env:
 
 jobs:
   publish:
-    runs-on: [self-hosted, linux, x64, debiantripleu-ci]
+    runs-on: debiantripleu-ci
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
