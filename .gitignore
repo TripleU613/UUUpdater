@@ -7,3 +7,12 @@
 .cxx
 /.idea/
 /app/build/
+*.jks
+*.keystore
+*.apk
+*.aab
+*.dm
+/key
+/app/*/release/
+/app/release/
+/.claude/settings.local.json

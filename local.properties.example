@@ -1,0 +1,18 @@
+# Copy to local.properties (git-ignored) and fill in. Every key can also be
+# supplied as the environment variable shown in brackets; env vars win.
+# Leave everything blank to build debug-signed APKs with no private feed token.
+
+sdk.dir=/path/to/Android/Sdk
+
+# Release signing [KEYSTORE_FILE, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD]
+keystore.file=
+keystore.password=
+keystore.keyalias=
+keystore.keypassword=
+
+# Custom update feeds (GitHub repo contents API)
+# [STANDARD_FEED_TOKEN, STANDARD_FEED_REPO, TECHEAZ_FEED_TOKEN, TECHEAZ_FEED_REPO]
+feed.standard.token=
+feed.standard.repo=TripleU613/uuupdater_public
+feed.techeaz.token=
+feed.techeaz.repo=TripleU613/kstore_json_techeaz

@@ -1,8 +1,23 @@
 @file:Suppress("DEPRECATION", "UnstableApiUsage")
 
 import com.android.build.gradle.internal.api.BaseVariantOutputImpl
-import java.io.FileInputStream
 import java.util.Properties
+
+/**
+ * Build secrets resolve from an environment variable first (CI / GitHub Secrets),
+ * then from `local.properties` (local dev), then fall back to [default].
+ * Nothing sensitive is committed; see `local.properties.example`.
+ */
+val localProps = Properties().apply {
+    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+}
+
+fun secret(env: String, prop: String = env, default: String = ""): String =
+    System.getenv(env)?.takeIf { it.isNotBlank() }
+        ?: localProps.getProperty(prop)?.takeIf { it.isNotBlank() }
+        ?: default
+
+fun String.quoted() = "\"" + replace("\\", "\\\\").replace("\"", "\\\"") + "\""
 
 plugins {
     id("com.android.application")
@@ -20,21 +35,17 @@ android {
         create("standard") {
             dimension = "distribution"
             buildConfigField("String", "CUSTOM_FEED_URL", "\"\"")
-            buildConfigField("String", "CUSTOM_FEED_TOKEN", "\"REDACTED_TOKEN\"")
+            buildConfigField("String", "CUSTOM_FEED_TOKEN", secret("STANDARD_FEED_TOKEN", "feed.standard.token").quoted())
             buildConfigField("String", "CUSTOM_FEED_NAME", "\"TripleU\"")
-            buildConfigField("String", "CUSTOM_FEED_REPO", "\"TripleU613/uuupdater_public\"")
+            buildConfigField("String", "CUSTOM_FEED_REPO", secret("STANDARD_FEED_REPO", "feed.standard.repo", "TripleU613/uuupdater_public").quoted())
             buildConfigField("String", "CUSTOM_FEED_PATH", "\"uuupdate.json\"")
         }
         create("techeaz") {
             dimension = "distribution"
             buildConfigField("String", "CUSTOM_FEED_URL", "\"\"")
-            buildConfigField(
-                "String",
-                "CUSTOM_FEED_TOKEN",
-                "\"REDACTED_TOKEN\""
-            )
+            buildConfigField("String", "CUSTOM_FEED_TOKEN", secret("TECHEAZ_FEED_TOKEN", "feed.techeaz.token").quoted())
             buildConfigField("String", "CUSTOM_FEED_NAME", "\"Techeaz\"")
-            buildConfigField("String", "CUSTOM_FEED_REPO", "\"TripleU613/kstore_json_techeaz\"")
+            buildConfigField("String", "CUSTOM_FEED_REPO", secret("TECHEAZ_FEED_REPO", "feed.techeaz.repo", "TripleU613/kstore_json_techeaz").quoted())
             buildConfigField("String", "CUSTOM_FEED_PATH", "\"uuupdate.json\"")
             buildConfigField("Boolean", "TECHEAZ_PRIVILEGED_INSTALLER", "true")
             buildConfigField("Boolean", "ENABLE_PLAY_DEBUG_LOGS", "true")
@@ -63,20 +74,22 @@ android {
 
     signingConfigs {
         create("release") {
-            try {
-                val props = Properties()
-                props.load(FileInputStream(file("../local.properties")))
-                storeFile = file(props.getProperty("keystore.file"))
-                storePassword = props.getProperty("keystore.password")
-                keyAlias = props.getProperty("keystore.keyalias")
-                keyPassword = props.getProperty("keystore.keypassword")
-            } catch (_: Exception) {
+            val keystorePath = secret("KEYSTORE_FILE", "keystore.file")
+            // Accept paths relative to app/ (legacy) or the project root.
+            val keystore = keystorePath.takeIf { it.isNotBlank() }
+                ?.let { listOf(file(it), rootProject.file(it)).firstOrNull { f -> f.exists() } }
+            if (keystore != null) {
+                storeFile = keystore
+                storePassword = secret("KEYSTORE_PASSWORD", "keystore.password")
+                keyAlias = secret("KEY_ALIAS", "keystore.keyalias")
+                keyPassword = secret("KEY_PASSWORD", "keystore.keypassword")
+            } else {
                 val config = signingConfigs.getByName("debug")
                 storeFile = config.storeFile
                 storePassword = config.storePassword
                 keyAlias = config.keyAlias
                 keyPassword = config.keyPassword
-                println("Signing config not found. Using debug settings.")
+                println("Release keystore not configured. Using debug signing.")
             }
             enableV3Signing = true
         }
