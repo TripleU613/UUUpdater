@@ -4,17 +4,7 @@ on:
   push:
     tags:
       - 'v*'
-      - 'techeaz-v*'
   workflow_dispatch:
-    inputs:
-      channel:
-        description: "Release channel to publish"
-        required: true
-        default: public
-        type: choice
-        options:
-          - public
-          - techeaz
 
 permissions:
   contents: write
@@ -29,30 +19,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Public releases ship the standard flavor only. The techeaz flavor embeds a
+      # private-feed token and must never be published from this repository.
       - name: Select release channel
         id: channel
-        shell: bash
         run: |
-          channel="${{ github.event.inputs.channel }}"
-          if [[ "${{ github.event_name }}" != "workflow_dispatch" ]]; then
-            if [[ "${GITHUB_REF}" == refs/tags/techeaz-v* ]]; then
-              channel=techeaz
-            else
-              channel=public
-            fi
-          fi
-
-          if [[ "$channel" == "techeaz" ]]; then
-            echo "tag_prefix=techeaz-" >> "$GITHUB_OUTPUT"
-            echo "name_prefix=Techeaz Release" >> "$GITHUB_OUTPUT"
-            echo "artifact_prefix=techeaz" >> "$GITHUB_OUTPUT"
-            echo "make_latest=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "tag_prefix=" >> "$GITHUB_OUTPUT"
-            echo "name_prefix=Public Release" >> "$GITHUB_OUTPUT"
-            echo "artifact_prefix=public" >> "$GITHUB_OUTPUT"
-            echo "make_latest=true" >> "$GITHUB_OUTPUT"
-          fi
+          echo "tag_prefix=" >> "$GITHUB_OUTPUT"
+          echo "name_prefix=Public Release" >> "$GITHUB_OUTPUT"
+          echo "artifact_prefix=public" >> "$GITHUB_OUTPUT"
+          echo "make_latest=true" >> "$GITHUB_OUTPUT"
 
       - name: Determine release version
         id: version
@@ -202,22 +177,15 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           STANDARD_FEED_TOKEN: ${{ secrets.STANDARD_FEED_TOKEN }}
-          TECHEAZ_FEED_TOKEN: ${{ secrets.TECHEAZ_FEED_TOKEN }}
           BUILD_NUMBER: ${{ steps.version.outputs.build_number }}
           VERSION_NAME: ${{ steps.version.outputs.version }}
-        run: ./gradlew --no-daemon assembleStandardRelease assembleTecheazRelease
+        run: ./gradlew --no-daemon assembleStandardRelease
 
       - name: Upload standard release APK
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.channel.outputs.artifact_prefix }}-standard-apk-${{ steps.version.outputs.version }}
           path: app/build/outputs/apk/standard/release/*.apk
-
-      - name: Upload techeaz release APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ steps.channel.outputs.artifact_prefix }}-techeaz-apk-${{ steps.version.outputs.version }}
-          path: app/build/outputs/apk/techeaz/release/*.apk
 
       - name: Remove keystore
         if: always()
@@ -231,7 +199,6 @@ jobs:
           target_commitish: ${{ github.sha }}
           files: |
             app/build/outputs/apk/standard/release/*.apk#com.tripleu.updater-standard-release.apk
-            app/build/outputs/apk/techeaz/release/*.apk#com.tripleu.updater-techeaz-release.apk
           draft: false
           prerelease: false
           make_latest: ${{ steps.channel.outputs.make_latest }}
